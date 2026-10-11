@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Bylaws Site Admin</title>
+<style>
+:root {
+  --paper: #f3f5f8; --sheet: #ffffff; --ink: #142233; --ink-2: #3a4859; --rule: #cdd5df; --rule-strong: #8e9cad;
+  --navy: #1c3d6b; --navy-ink: #ffffff; --navy-tint: #e3ebf6; --good: #19663a; --good-bg: #dff1e5; --bad: #a1271e; --bad-bg: #fbe4e0;
+  --flag-bg: #fff2cf; --flag-ink: #4a3700; --flag-rule: #d4ac3f; --focus: #c2410c; --radius: 10px;
+  --font: "Atkinson Hyperlegible", Verdana, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d131b; --sheet: #151e29; --ink: #e8edf3; --ink-2: #b6c2cf; --rule: #2c3a4a; --rule-strong: #5a6d82;
+    --navy: #95b9eb; --navy-ink: #0d131b; --navy-tint: #1a2a3e; --good: #84d49f; --good-bg: #13301f; --bad: #ffa092; --bad-bg: #3c1714;
+    --flag-bg: #362b0e; --flag-ink: #ffe5a6; --flag-rule: #8f7224; --focus: #ffb27a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d131b; --sheet: #151e29; --ink: #e8edf3; --ink-2: #b6c2cf; --rule: #2c3a4a; --rule-strong: #5a6d82;
+  --navy: #95b9eb; --navy-ink: #0d131b; --navy-tint: #1a2a3e; --good: #84d49f; --good-bg: #13301f; --bad: #ffa092; --bad-bg: #3c1714;
+  --flag-bg: #362b0e; --flag-ink: #ffe5a6; --flag-rule: #8f7224; --focus: #ffb27a; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 1.0625rem; line-height: 1.55; }
+h1, h2, h3, p { margin: 0; }
+.wrap { max-width: 62rem; margin-inline: auto; padding: 1.5rem 16px 4rem; display: grid; gap: 1.5rem; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; }
+header.top h1 { font-size: 1.6rem; margin-right: auto; }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1rem 1.1rem; display: grid; gap: .9rem; min-width: 0; }
+.panel h2 { font-size: 1.25rem; }
+.hint { color: var(--ink-2); font-size: .95rem; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.btn { font: inherit; font-weight: 700; min-height: 2.75rem; padding: .4rem 1rem; border-radius: 8px; border: 2px solid var(--navy); background: var(--navy); color: var(--navy-ink); cursor: pointer; }
+.btn.quiet { background: transparent; color: var(--navy); }
+.btn.danger { background: transparent; color: var(--bad); border-color: var(--bad); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+label.f { display: grid; gap: .25rem; font-weight: 700; }
+label.f input, label.f select { font: inherit; font-weight: 400; min-height: 2.75rem; padding: .35rem .55rem; border: 2px solid var(--rule-strong); border-radius: 8px; background: var(--sheet); color: var(--ink); width: 100%; }
+.status { color: var(--ink-2); }
+.err { color: var(--bad); font-weight: 700; }
+.meter { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; }
+.meter b { font-size: 1.3rem; }
+.tabs { display: flex; flex-wrap: wrap; gap: .4rem; }
+.tabs button { font: inherit; font-weight: 700; min-height: 2.6rem; padding: .3rem .9rem; border-radius: 999px; border: 1px solid var(--rule-strong); background: var(--sheet); color: var(--ink); cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--navy); color: var(--navy-ink); border-color: var(--navy); }
+.items { display: grid; gap: .8rem; }
+.item { border: 1px solid var(--rule); border-radius: var(--radius); padding: .8rem .9rem; display: grid; gap: .45rem; background: var(--sheet); min-width: 0; }
+.item.pending { border-left: 5px solid var(--flag-rule); }
+.item.live { border-left: 5px solid var(--good); }
+.item.hidden { border-left: 5px solid var(--rule-strong); opacity: .85; }
+.meta { font-size: .95rem; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: .15rem .8rem; }
+.tag { font-size: .8rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: .05rem .5rem; border-radius: 4px; background: var(--navy-tint); color: var(--navy); }
+.tag.pending { background: var(--flag-bg); color: var(--flag-ink); }
+.tag.live { background: var(--good-bg); color: var(--good); }
+.tag.hidden { background: var(--paper); color: var(--ink-2); }
+.body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.wording { white-space: pre-wrap; overflow-wrap: anywhere; font-family: Georgia, serif; background: var(--paper); border-radius: 8px; padding: .5rem .7rem; }
+.target { font-weight: 700; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <h1>Bylaws site admin</h1>
+    <button type="button" class="btn quiet" id="signout" hidden>Sign out</button>
+  </header>
+
+  <section class="panel" id="login">
+    <h2>Sign in</h2>
+    <p class="hint">Use the ADMIN_KEY you set in Netlify's environment variables. It stays in this browser tab only.</p>
+    <form id="login-form" class="row">
+      <label class="f" for="key" style="flex:1 1 18rem">Admin key<input id="key" type="password" autocomplete="current-password" required></label>
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+    <p class="status" id="login-status" aria-live="polite"></p>
+  </section>
+
+  <div id="app" hidden>
+    <section class="panel">
+      <h2>Activity</h2>
+      <div class="meter" id="meter"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Settings</h2>
+      <p class="hint">Changes take effect within about a minute. No redeploy needed.</p>
+      <form id="cfg" class="grid">
+        <label class="f">Accept new comments
+          <select name="open"><option value="true">Yes</option><option value="false">No, closed</option></select></label>
+        <label class="f">Accept new proposals
+          <select name="proposalsOpen"><option value="true">Yes</option><option value="false">No, closed</option></select></label>
+        <label class="f">New posts
+          <select name="moderation"><option value="hold">Wait for my approval</option><option value="publish">Show right away</option></select></label>
+        <label class="f">Per person, per hour<input name="ipPerHour" type="number" min="1" step="1" inputmode="numeric"></label>
+        <label class="f">Per person, per day<input name="ipPerDay" type="number" min="1" step="1" inputmode="numeric"></label>
+        <label class="f">Everyone together, per hour<input name="allPerHour" type="number" min="1" step="1" inputmode="numeric"></label>
+        <label class="f">Everyone together, per day<input name="allPerDay" type="number" min="1" step="1" inputmode="numeric"></label>
+        <label class="f">Longest comment (characters)<input name="maxCommentChars" type="number" min="100" step="1" inputmode="numeric"></label>
+        <label class="f">Longest proposal wording (characters)<input name="maxProposalChars" type="number" min="500" step="1" inputmode="numeric"></label>
+      </form>
+      <p class="hint">“Per person” means per internet connection. Everyone on the same Wi-Fi, like a meeting room, shares one. Raise the per-person limits before you ask a room full of people to comment. Days and hours are rolling: the last 24 hours and the last 60 minutes.</p>
+      <div class="row"><button class="btn" type="button" id="save">Save settings</button><p class="status" id="cfg-status" aria-live="polite"></p></div>
+    </section>
+
+    <section class="panel">
+      <h2>Posts</h2>
+      <div class="tabs" role="group" aria-label="Show">
+        <button type="button" data-f="pending" aria-pressed="true">Waiting</button>
+        <button type="button" data-f="live" aria-pressed="false">Live</button>
+        <button type="button" data-f="hidden" aria-pressed="false">Hidden</button>
+        <button type="button" data-f="all" aria-pressed="false">All</button>
+      </div>
+      <p class="status" id="list-status" aria-live="polite"></p>
+      <div class="items" id="items"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Tools</h2>
+      <div class="row">
+        <button class="btn quiet" type="button" id="export">Download everything (CSV)</button>
+        <button class="btn quiet" type="button" id="refresh">Refresh</button>
+        <button class="btn quiet" type="button" id="rebuild">Rebuild the public list</button>
+        <button class="btn quiet" type="button" id="cleanup">Clear old rate-limit records</button>
+      </div>
+      <p class="hint">The CSV includes emails. Keep it private. “Rebuild the public list” fixes the public page if it ever disagrees with this list.</p>
+      <p class="status" id="tools-status" aria-live="polite"></p>
+    </section>
+  </div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var LABELS = {"H1":"Repair 1 · Amendment 1: Fix a reference to sections that don't exist","H2":"Repair 2 · Amendment 2: Fix the references in the district officers section","H3":"Repair 3 · Amendment 3 and Standing Rule amendment 1: Use one name for the reorganization meeting","H4":"Repair 4 · Amendment 4: Use one name for the fund-raising director and committee","H5":"Repair 5 · Standing Rule amendment 2: Use one name for the Endorsements Committee","H6":"Repair 6 · Amendment 5: Use one title for the District Chair","H7":"Repair 7 · Amendment 6: Correct the state party's abbreviation","H8":"Repair 8 · Amendment 7 and Standing Rule amendment 3: Remove leftover and garbled text","H9":"Repair 9 · Amendment 8 and Standing Rule amendment 4: Name Robert's Rules the same way everywhere","H10":"Repair 10 · Amendment 9: Update a note about state law","H11":"Repair 11 · Amendment 10: Make the legal-fees rule match its section","H12":"Repair 12 · Amendment 11: Update citations to the campaign finance law","B1":"Repair 13 · Amendment 12: Count votes the standard way","B2":"Repair 14 · Amendment 13: No one loses membership without notice, a hearing and a vote","B3":"Repair 15 · Amendment 14: Settle who votes in the Central Committee","B4":"Repair 16 · Amendment 15: Keep the Communications Director elected","B5":"Repair 17 · Amendment 16: The Central Committee approves the Budget Committee","B6":"Repair 18 · Amendment 17: District officers get a hearing before removal","B7":"Repair 19 · Amendment 18: Notice and appeal before a PCO is made inactive","B8":"Repair 20 · Amendment 19: Voter-check procedures in writing, approved by the Board","B9":"Repair 21 · Standing Rule amendment 5: Write the rule for vetting candidates","B10":"Repair 22 · Amendment 20: One officer can't block a PCO appointment","B11":"Repair 23 · Amendment 21: Who can call a special Board meeting","B12":"Repair 24 · Amendment 22: Job descriptions for district officers, and district committees","B13":"Repair 25 · Standing Rule amendment 6: A clear dues year","B14":"Repair 26 · Amendment 23: Committees may meet by video or phone","G1":"Repair 27 · Amendment 24: Secret ballots in every officer election","G2":"Repair 28 · Amendment 25: Know the candidates ahead of time, without closing the field","G3":"Repair 29 · Amendment 26: Join district meetings by video","G4":"Repair 30 · Amendment 27: Guests are welcome, and order is kept","G5":"Repair 31 · Amendment 28: Set up the Bylaws and Endorsements Committees, approved by the full body","G6":"Repair 32 · Amendment 29: Training materials for new PCOs","F1":"Repair 33 · Amendment 30: Define the words the bylaws use","F2":"Repair 34 · Amendment 31: Every proposal shows its exact wording and fixes what it touches","F3":"Repair 35 · Amendment 32: One subject per amendment","F4":"Repair 36 · Amendment 33: No changing election rules right before an election","F5":"Repair 37 · Amendment 34: The Secretary can fix numbering and typos","F6":"Repair 38 · Amendment 35: Everyone gets the current rulebook after every change","F7":"Repair 39 · Amendment 36: Review the whole rulebook every two years","F8":"Repair 40 · Amendment 37: If one part is struck down, the rest still stands","M1":"Repair 41 · Amendment 38: Audit the party's books every year","T1":"Repair 42 · Amendment 39: A fair trial before anyone is disciplined","S1":"Repair 43 · Amendment 40: Keep order at meetings without shutting members out","X1":"Repair 44 · Amendment 41: A fast, narrow safety bar for real emergencies"};
+  var ROLES = { "pco-elected": "Elected PCO", "pco-appointed": "Appointed PCO", "captain": "Precinct Captain", "county-officer": "County party officer", "district-officer": "District officer", "member": "Dues-paying member", "other": "Other or guest" };
+  var POS = { support: "Support", oppose: "Oppose", changes: "Support with changes", question: "Question" };
+  var STATUS = { pending: "Waiting", live: "Live", hidden: "Hidden" };
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function h(tag, props, kids) {
+    var el = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) {
+      var v = props[k];
+      if (v == null || v === false) return;
+      if (k === "class") el.className = v; else if (k === "text") el.textContent = v;
+      else if (k === "on") Object.keys(v).forEach(function (e) { el.addEventListener(e, v[e]); });
+      else el.setAttribute(k, v);
+    });
+    (kids || []).forEach(function (c) { if (c != null && c !== false) el.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return el;
+  }
+  var KEY = "";
+  try { KEY = sessionStorage.getItem("bw-admin-key") || ""; } catch (e) { KEY = ""; }
+  var DATA = { items: [], config: {}, usage: {} }, FILTER = "pending";
+
+  function api(action, extra) {
+    var body = Object.assign({ action: action }, extra || {});
+    return fetch("/api/admin", { method: "POST", headers: { "content-type": "application/json", "x-admin-key": KEY }, body: JSON.stringify(body) })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (d) {
+          if (!res.ok) { d.httpStatus = res.status; throw d; }
+          return d;
+        });
+      }, function () { throw { message: "The site couldn't be reached." }; });
+  }
+  function fail(el, err) {
+    el.textContent = (err && err.message) || (err && err.httpStatus === 429 ? "Too many requests. Wait a minute." : "Something went wrong.");
+    el.className = "status err";
+    if (err && (err.httpStatus === 401 || err.httpStatus === 503)) signOut(err.message);
+  }
+  function ok(el, msg) { el.textContent = msg; el.className = "status"; }
+
+  function signOut(msg) {
+    KEY = "";
+    try { sessionStorage.removeItem("bw-admin-key"); } catch (e) { /* ignore */ }
+    $("#app").hidden = true; $("#login").hidden = false; $("#signout").hidden = true;
+    if (msg) ok($("#login-status"), msg);
+  }
+  function load() {
+    ok($("#list-status"), "Loading…");
+    return api("list").then(function (d) {
+      DATA = d;
+      $("#login").hidden = true; $("#app").hidden = false; $("#signout").hidden = false;
+      renderMeter(); renderConfig(); renderItems();
+    }, function (err) { fail($("#list-status"), err); if (!$("#app").hidden) return; fail($("#login-status"), err); });
+  }
+
+  function renderMeter() {
+    var c = DATA.config || {}, u = DATA.usage || {}, n = { pending: 0, live: 0, hidden: 0 };
+    (DATA.items || []).forEach(function (x) { n[x.status] = (n[x.status] || 0) + 1; });
+    var m = $("#meter");
+    m.textContent = "";
+    [["Waiting for you", n.pending], ["Live", n.live], ["Hidden", n.hidden],
+     ["Posts in the last hour", (u.lastHour || 0) + " of " + c.allPerHour], ["Posts in the last 24 hours", (u.lastDay || 0) + " of " + c.allPerDay]
+    ].forEach(function (r) { m.appendChild(h("p", {}, [h("b", { text: String(r[1]) }), " " + r[0]])); });
+    $$(".tabs button").forEach(function (b) {
+      var f = b.getAttribute("data-f"), base = { pending: "Waiting", live: "Live", hidden: "Hidden", all: "All" }[f];
+      b.textContent = base + " (" + (f === "all" ? (DATA.items || []).length : (n[f] || 0)) + ")";
+    });
+  }
+  function renderConfig() {
+    var f = $("#cfg"), c = DATA.config || {};
+    Object.keys(c).forEach(function (k) { if (f.elements[k]) f.elements[k].value = String(c[k]); });
+  }
+  function sectionName(id) {
+    if (!id) return "";
+    if (id.indexOf("SR ") === 0) return "Standing Rule " + id.slice(3);
+    return /^\d+$/.test(id) ? "Article " + id : "Bylaw " + id;
+  }
+  function targetText(x) {
+    if (x.kind === "proposal") return "Proposal: " + (x.title || "");
+    if (x.target && x.target.indexOf("r:") === 0) return LABELS[x.target.slice(2)] || x.target;
+    if (x.target && x.target.indexOf("p:") === 0) {
+      var p = (DATA.items || []).filter(function (y) { return y.id === x.target.slice(2); })[0];
+      return "On the proposal: " + (p ? p.title : "(deleted)");
+    }
+    return x.target || "";
+  }
+  function renderItems() {
+    var box = $("#items"), list = (DATA.items || []).filter(function (x) { return FILTER === "all" || x.status === FILTER; });
+    var perIp = {};
+    (DATA.items || []).forEach(function (x) { perIp[x.ipHash] = (perIp[x.ipHash] || 0) + 1; });
+    box.textContent = "";
+    ok($("#list-status"), list.length ? "" : "Nothing here.");
+    list.forEach(function (x) {
+      var who = [x.name, x.email, ROLES[x.role] || x.role, x.precinct ? "Precinct " + x.precinct : "", x.showName === false ? "Name hidden from the public" : ""].filter(Boolean).join(" · ");
+      var when = new Date(x.created);
+      var kids = [
+        h("div", { class: "row" }, [h("span", { class: "tag " + x.status, text: STATUS[x.status] || x.status }), h("span", { class: "tag", text: x.kind === "proposal" ? "Proposal" : (POS[x.position] || "Comment") }), h("span", { class: "target", text: targetText(x) })]),
+        h("p", { class: "meta" }, [h("span", { text: who }), h("span", { text: isNaN(when) ? "" : when.toLocaleString() }), h("span", { text: "Connection " + String(x.ipHash || "").slice(0, 8) + " (" + (perIp[x.ipHash] || 0) + " posts)" })])
+      ];
+      if (x.kind === "comment") kids.push(h("p", { class: "body", text: x.text || "" }));
+      else {
+        kids.push(h("p", { class: "body", text: "Why: " + (x.why || "") }));
+        kids.push(h("p", { class: "meta", text: x.mode === "add" ? "Adds a new " + sectionName(x.newId) + (x.newTitle ? " (" + x.newTitle + ")" : "") + " after " + sectionName(x.section) : "Changes " + sectionName(x.section) }));
+        kids.push(h("p", { class: "wording", text: (x.nodes || []).map(function (n) { return (n.k === "i" && n.l ? n.l + " " : "") + n.t; }).join("\n") }));
+      }
+      var actions = h("div", { class: "row" });
+      if (x.status !== "live") actions.appendChild(h("button", { type: "button", class: "btn", text: "Approve", on: { click: function () { setStatus(x, "live", this); } } }));
+      if (x.status !== "hidden") actions.appendChild(h("button", { type: "button", class: "btn quiet", text: "Hide", on: { click: function () { setStatus(x, "hidden", this); } } }));
+      if (x.status !== "pending") actions.appendChild(h("button", { type: "button", class: "btn quiet", text: "Back to waiting", on: { click: function () { setStatus(x, "pending", this); } } }));
+      actions.appendChild(h("button", { type: "button", class: "btn danger", text: "Delete", on: { click: function () { del(x, this); } } }));
+      kids.push(actions);
+      box.appendChild(h("article", { class: "item " + x.status }, kids));
+    });
+  }
+  function setStatus(x, status, btn) {
+    btn.disabled = true;
+    api("set-status", { id: x.id, status: status }).then(function (d) {
+      DATA.items = DATA.items.map(function (y) { return y.id === x.id ? d.item : y; });
+      renderMeter(); renderItems();
+      ok($("#list-status"), "Marked " + (STATUS[status] || status).toLowerCase() + ". The public page updates within about a minute.");
+    }, function (err) { btn.disabled = false; fail($("#list-status"), err); });
+  }
+  function del(x, btn) {
+    if (!window.confirm("Delete this " + x.kind + " for good? This can't be undone.")) return;
+    btn.disabled = true;
+    api("delete", { id: x.id }).then(function () {
+      DATA.items = DATA.items.filter(function (y) { return y.id !== x.id; });
+      renderMeter(); renderItems();
+      ok($("#list-status"), "Deleted.");
+    }, function (err) { btn.disabled = false; fail($("#list-status"), err); });
+  }
+
+  $("#login-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    KEY = $("#key").value;
+    try { sessionStorage.setItem("bw-admin-key", KEY); } catch (err) { /* this tab only */ }
+    $("#key").value = "";
+    ok($("#login-status"), "Checking…");
+    load();
+  });
+  $("#signout").addEventListener("click", function () { signOut("Signed out."); });
+  $("#save").addEventListener("click", function () {
+    var f = $("#cfg"), cfg = {};
+    ["open", "proposalsOpen", "moderation", "ipPerHour", "ipPerDay", "allPerHour", "allPerDay", "maxCommentChars", "maxProposalChars"].forEach(function (k) { cfg[k] = f.elements[k].value; });
+    var st = $("#cfg-status");
+    ok(st, "Saving…");
+    api("set-config", { config: cfg }).then(function (d) { DATA.config = d.config; renderConfig(); renderMeter(); ok(st, "Saved."); }, function (err) { fail(st, err); });
+  });
+  $$(".tabs button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      FILTER = b.getAttribute("data-f");
+      $$(".tabs button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      renderItems();
+    });
+  });
+  $("#refresh").addEventListener("click", function () { load(); });
+  $("#export").addEventListener("click", function () {
+    var st = $("#tools-status");
+    ok(st, "Preparing…");
+    api("export").then(function (d) {
+      var blob = new Blob([d.csv], { type: "text/csv;charset=utf-8" }), url = URL.createObjectURL(blob);
+      var a = h("a", { href: url, download: "bylaws-site-posts-" + new Date().toISOString().slice(0, 10) + ".csv" });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      ok(st, "Downloaded " + d.count + " posts.");
+    }, function (err) { fail(st, err); });
+  });
+  $("#rebuild").addEventListener("click", function () {
+    var st = $("#tools-status");
+    api("rebuild-feed").then(function (d) { ok(st, "Rebuilt. " + d.count + " live posts."); }, function (err) { fail(st, err); });
+  });
+  $("#cleanup").addEventListener("click", function () {
+    var st = $("#tools-status");
+    api("cleanup").then(function (d) { ok(st, "Cleared " + d.removed + " old records."); }, function (err) { fail(st, err); });
+  });
+  if (KEY) load();
+})();
+</script>
+</body>
+</html>

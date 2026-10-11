@@ -1,0 +1,16 @@
+{
+  "name": "pcrp-bylaws-site",
+  "private": true,
+  "type": "module",
+  "description": "PCRP Bylaws Workbench with member comments and proposals, for Netlify.",
+  "scripts": {
+    "dev": "node dev/server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.4"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
