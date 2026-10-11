@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryBlobs } from "../dev/memory-blobs.mjs";
-import { handleSubmit, handleFeed, handleAdmin, netlifyStores, cleanConfig, DEFAULTS } from "../netlify/lib/core.mjs";
+import { handleSubmit, handleFeed, handleAdmin, netlifyStores, cleanConfig, DEFAULTS, screen } from "../netlify/lib/core.mjs";
 
 const KEY = "test-admin-key-123456";
 function setup(settings, clock) {
@@ -35,6 +35,7 @@ test("settings: defaults, changes and bad values", () => {
 
 test("hold mode: a comment waits for approval, then shows without private fields", async () => {
   const e = setup();
+  await configure(e, { moderation: "hold" });
   const r = await submit(e, comment());
   assert.equal(r.status, 200); assert.equal(r.body.status, "pending"); assert.equal(r.body.item, null);
   assert.equal((await feed(e)).body.items.length, 0);
@@ -52,6 +53,55 @@ test("hold mode: a comment waits for approval, then shows without private fields
   assert.match(f.res.headers.get("netlify-cdn-cache-control"), /s-maxage=15/);
   await admin(e, { action: "set-status", id: r.body.id, status: "hidden" });
   assert.equal((await feed(e)).body.items.length, 0);
+});
+
+test("comments show right away by default, except ones the automatic check holds", async () => {
+  const e = setup();
+  assert.equal(DEFAULTS.moderation, "publish");
+  const rot13 = s => s.replace(/[a-z]/g, c => String.fromCharCode((c.charCodeAt(0) - 97 + 13) % 26 + 97));
+  const cases = [
+    ["Notice and a hearing first. Good.", []],
+    ["Dick Muri would have liked the raccoon-proof assessment of this class of spice in Scunthorpe.", []],
+    ["The 27-488 precinct met on 10/11/2026 to discuss RCW 29A.80.061 and U.S. law, e.g. 15 U.S.C. § 1681b.", []],
+    ["See https://example.com for more.", ["link"]],
+    ["Cheap pills at www.example.ru", ["link"]],
+    ["visit spam-site.xyz today", ["link"]],
+    ["This is bullsh1t.", ["language"]],
+    ["fuuuuck this amendment", ["language"]],
+    ["They're all " + rot13("fcvpf") + ".", ["language"]],
+    ["Call me at (253) 555-0100 about it.", ["contact"]],
+    ["Email me: someone@example.org", ["contact"]],
+    ["THIS AMENDMENT IS A TERRIBLE IDEA AND EVERYONE KNOWS IT", ["caps"]],
+    ["No!!!!!!!!!!!! Never.", ["repeat"]],
+    ["Это предложение очень плохое и его нужно отклонить", ["script"]],
+    ["I know where you live.", ["threat"]],
+    ["Someone should put a bullet in his head.", ["threat"]],
+    ["You deserve to be shot for this.", ["threat"]],
+    ["I\u2019ll kill you if this passes", ["threat"]],
+    ["He lives at 1234 S 56th St, go see him.", ["contact"]],
+    ["<script>alert(1)</script>", ["code"]],
+    ["<img src=x onerror=alert(1)>", ["code"]],
+    ["Let's kill this amendment and shoot down the rest. It should be shot down, and we'll beat the deadline.", []],
+    ["We will hang the banner. Article 10 all the way. In 2017 the Washington Supreme Court held for the party.", []],
+    ["If a < b and c > d, the vote fails. Shoot them down.", []]
+  ];
+  for (const [text, want] of cases) assert.deepEqual(screen("Pat Example", text), want, text);
+  assert.deepEqual(screen("Visit www.example.com", "Fine."), ["link"]);
+  const ok = await submit(e, comment());
+  assert.equal(ok.body.status, "live");
+  const held = await submit(e, comment({ text: "Details at https://example.com" }), "1.1.1.2");
+  assert.equal(held.status, 200); assert.equal(held.body.status, "pending"); assert.equal(held.body.item, null);
+  const f = await feed(e);
+  assert.equal(f.body.items.length, 1);
+  const list = await admin(e, { action: "list" });
+  assert.deepEqual(list.body.items.find(x => x.id === held.body.id).held, ["link"]);
+  assert.equal(list.body.items.find(x => x.id === ok.body.id).held, undefined);
+  const ex = await admin(e, { action: "export" });
+  assert.match(ex.body.csv, /,ipHash,held\r\n/);
+  // Hold mode still records why a comment would have been held.
+  await configure(e, { moderation: "hold" });
+  const h2 = await submit(e, comment({ text: "Call 253-555-0100" }), "1.1.1.3");
+  assert.equal(h2.body.status, "pending");
 });
 
 test("publish mode and withheld names", async () => {
@@ -112,7 +162,13 @@ test("validation, honeypot, closed switch and request checks", async () => {
   let r = await submit(e, comment({ name: "", email: "nope", role: "boss" }));
   assert.equal(r.status, 400); assert.ok(r.body.fields.name && r.body.fields.email && r.body.fields.role);
   r = await submit(e, comment({ precinct: "" }));
-  assert.equal(r.status, 400); assert.ok(r.body.fields.precinct);
+  assert.equal(r.status, 200); // a precinct is optional
+  r = await submit(e, comment({ email: "", role: undefined, precinct: "27-488" }));
+  assert.equal(r.status, 200); // so is an email; a precinct with no role means a PCO
+  const saved = (await admin(e, { action: "list" })).body.items.find(x => x.id === r.body.id);
+  assert.equal(saved.role, "pco"); assert.equal(saved.email, null);
+  r = await submit(e, comment({ email: "not-an-email" }));
+  assert.equal(r.status, 400); assert.ok(r.body.fields.email);
   r = await submit(e, comment({ role: "member", precinct: "" }));
   assert.equal(r.status, 200);
   r = await submit(e, comment({ target: "r:NOPE" }));
@@ -121,7 +177,7 @@ test("validation, honeypot, closed switch and request checks", async () => {
   assert.equal(r.status, 400);
   r = await submit(e, comment({ website: "spam.example" }));
   assert.equal(r.status, 200); assert.equal(r.body.id, null);
-  assert.equal((await admin(e, { action: "list" })).body.items.length, 1);
+  assert.equal((await admin(e, { action: "list" })).body.items.length, 3);
   await configure(e, { open: false });
   r = await submit(e, comment());
   assert.equal(r.status, 403);

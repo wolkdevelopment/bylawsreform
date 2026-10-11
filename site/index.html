@@ -1844,11 +1844,12 @@ if (typeof module !== "undefined") module.exports = Engine;
     catch (e) { return d.toDateString(); }
   }
 
-  var ROLES = [["pco-elected", "Elected PCO"], ["pco-appointed", "Appointed PCO"], ["captain", "Precinct Captain"], ["county-officer", "County party officer"], ["district-officer", "District officer"], ["member", "Dues-paying member"], ["other", "Other or guest"]];
-  var ROLE_NAME = {}; ROLES.forEach(function (r) { ROLE_NAME[r[0]] = r[1]; });
-  var NEEDS_PRECINCT = { "pco-elected": 1, "pco-appointed": 1, "captain": 1 };
-  var POSITIONS = [["support", "Support"], ["oppose", "Oppose"], ["changes", "Support with changes"], ["question", "Question"]];
+  // The form asks only for a name, plus an optional precinct (PCOs) and email. Older roles still display on earlier comments.
+  var ROLE_NAME = { "pco": "PCO", "pco-elected": "Elected PCO", "pco-appointed": "Appointed PCO", "captain": "Precinct Captain", "county-officer": "County party officer", "district-officer": "District officer", "member": "Dues-paying member", "other": "Other or guest" };
+  var VIEWS = [["support", "Support"], ["oppose", "Oppose"]]; // offered on the form; optional
+  var POSITIONS = [["support", "Support"], ["oppose", "Oppose"], ["changes", "Support with changes"], ["question", "Question"]]; // counted and shown, including earlier comments
   var POS_NAME = { comment: "Comment" }; POSITIONS.forEach(function (p) { POS_NAME[p[0]] = p[1]; });
+  var EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, PRECINCT_OK = /^[0-9A-Za-z][0-9A-Za-z -]{0,15}$/;
 
   var S = { ready: false, failed: false, items: [], config: { open: true, moderation: "hold", maxCommentChars: 2000 } };
 
@@ -1883,9 +1884,9 @@ if (typeof module !== "undefined") module.exports = Engine;
 
   /* ---------- who is posting ---------- */
   var me = getJSON("bw-me") || {};
-  function known() { return !!(me.name && me.email && me.role && (me.precinct || !NEEDS_PRECINCT[me.role])); }
+  function known() { return !!me.name; }
   function whoText() {
-    return [me.name, ROLE_NAME[me.role], me.precinct ? "Precinct " + me.precinct : ""].filter(Boolean).join(" · ");
+    return [me.name, me.precinct ? "PCO, Precinct " + me.precinct : ""].filter(Boolean).join(" · ");
   }
   function field(prefix, name, label, input, hint) {
     var hintId = hint ? prefix + "-" + name + "-hint" : null, errId = prefix + "-" + name + "-err";
@@ -1897,20 +1898,15 @@ if (typeof module !== "undefined") module.exports = Engine;
     ]);
   }
   function personFields(prefix) {
-    var role = h("select", { id: prefix + "-role", name: "role" }, [h("option", { value: "", text: "Choose one…" })].concat(ROLES.map(function (r) {
-      return h("option", { value: r[0], text: r[1] });
-    })));
     var fields = h("div", { class: "person-fields" }, [
       field(prefix, "name", "Your name", h("input", { id: prefix + "-name", name: "name", autocomplete: "name", maxlength: "80" })),
-      field(prefix, "email", "Your email (kept private)", h("input", { id: prefix + "-email", name: "email", type: "email", autocomplete: "email", maxlength: "120" }), "Only the site's moderator sees it. It's used to confirm who you are."),
-      field(prefix, "role", "Your role", role),
-      field(prefix, "precinct", "Your precinct", h("input", { id: prefix + "-precinct", name: "precinct", autocomplete: "off", maxlength: "16", placeholder: "For example, 27-488" }), "Needed if you're a PCO or Precinct Captain."),
-      h("label", { class: "check", for: prefix + "-show" }, [h("input", { type: "checkbox", id: prefix + "-show", name: "showName", checked: me.showName !== false }), " Show my name and precinct with my comment"]),
-      h("label", { class: "check", for: prefix + "-remember" }, [h("input", { type: "checkbox", id: prefix + "-remember", name: "remember", checked: me.remember !== false }), " Remember me on this device"])
+      field(prefix, "precinct", "Your precinct, if you're a PCO (optional)", h("input", { id: prefix + "-precinct", name: "precinct", autocomplete: "off", maxlength: "16", placeholder: "For example, 27-488" })),
+      field(prefix, "email", "Your email (optional)", h("input", { id: prefix + "-email", name: "email", type: "email", autocomplete: "email", maxlength: "120" }), "Only the moderator sees it."),
+      h("label", { class: "check", for: prefix + "-show" }, [h("input", { type: "checkbox", id: prefix + "-show", name: "showName", checked: me.showName !== false }), " Show my name and precinct with my comment"])
     ]);
     var box = h("fieldset", { class: "person" }, [h("legend", { text: "About you" })]);
     if (known()) {
-      // Returning commenters see one line instead of six fields.
+      // Returning commenters see one line instead of the fields.
       var change = h("button", { type: "button", class: "linkish", text: "Change" });
       var line = h("p", { class: "who" }, ["Posting as ", h("strong", { text: whoText() }), me.showName === false ? " (name hidden from the public)" : "", ". ", change]);
       fields.hidden = true;
@@ -1922,7 +1918,6 @@ if (typeof module !== "undefined") module.exports = Engine;
     box.appendChild(h("div", { class: "hp", "aria-hidden": "true" }, [h("label", { for: prefix + "-hpn" }, ["Leave this empty", h("input", { id: prefix + "-hpn", name: "hpn-" + prefix, tabindex: "-1", autocomplete: "off" })])]));
     $("#" + prefix + "-name", box).value = me.name || "";
     $("#" + prefix + "-email", box).value = me.email || "";
-    $("#" + prefix + "-role", box).value = me.role || "";
     $("#" + prefix + "-precinct", box).value = me.precinct || "";
     return box;
   }
@@ -1930,22 +1925,19 @@ if (typeof module !== "undefined") module.exports = Engine;
     var p = {
       name: $("#" + prefix + "-name", root).value.trim(),
       email: $("#" + prefix + "-email", root).value.trim(),
-      role: $("#" + prefix + "-role", root).value,
       precinct: $("#" + prefix + "-precinct", root).value.trim(),
       showName: $("#" + prefix + "-show", root).checked,
       website: $("#" + prefix + "-hpn", root).value
     };
-    if ($("#" + prefix + "-remember", root).checked) {
-      me = { name: p.name, email: p.email, role: p.role, precinct: p.precinct, showName: p.showName, remember: true };
-      setItem("bw-me", JSON.stringify(me));
-    } else { me = { remember: false }; delItem("bw-me"); }
+    // Remembered on this device so the next comment takes one line. "Change" edits it.
+    me = { name: p.name, email: p.email, precinct: p.precinct, showName: p.showName };
+    if (p.name) setItem("bw-me", JSON.stringify(me)); else delItem("bw-me");
     return p;
   }
   function checkPerson(p, errors) {
     if (p.name.length < 2) errors.name = "Enter your name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p.email)) errors.email = "Enter a working email address.";
-    if (!p.role) errors.role = "Choose your role.";
-    if (!p.precinct && NEEDS_PRECINCT[p.role]) errors.precinct = "Enter your precinct number, like 27-488.";
+    if (p.precinct && !PRECINCT_OK.test(p.precinct)) errors.precinct = "Use your precinct number, like 27-488, or leave it blank.";
+    if (p.email && !EMAIL_OK.test(p.email)) errors.email = "Check your email address, or leave it blank.";
   }
   function showErrors(root, errors) {
     var keys = Object.keys(errors);
@@ -2043,10 +2035,14 @@ if (typeof module !== "undefined") module.exports = Engine;
     var max = S.config.maxCommentChars || 2000;
     var text = h("textarea", { id: prefix + "-text", name: "text", rows: "4", maxlength: String(max), placeholder: "What do you think of this repair?" });
     var counter = h("p", { class: "hint counter", id: prefix + "-count", text: "0 of " + count(max) + " characters" });
+    var picked = null;
     var posBox = h("fieldset", { class: "seg pos-pick field", "data-field": "position" }, [h("legend", { text: "Your view (optional)" })].concat(
-      POSITIONS.reduce(function (acc, p) {
+      VIEWS.reduce(function (acc, p) {
         var id = prefix + "-pos-" + p[0];
-        acc.push(h("input", { type: "radio", name: prefix + "-pos", id: id, value: p[0] }));
+        // Choosing the same view again clears it, so no one is stuck with a side.
+        acc.push(h("input", { type: "radio", name: prefix + "-pos", id: id, value: p[0], on: { click: function () {
+          if (picked === this) { this.checked = false; picked = null; } else picked = this;
+        } } }));
         acc.push(h("label", { for: id, text: p[1] }));
         return acc;
       }, [])

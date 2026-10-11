@@ -7,7 +7,9 @@ import { REPAIR_IDS } from "./ids.mjs";
 
 const REPAIRS = new Set(REPAIR_IDS);
 
+// The comment form asks only for a precinct, and a precinct means a PCO. The older roles stay so earlier comments still display.
 export const ROLES = {
+  "pco": "PCO",
   "pco-elected": "Elected PCO",
   "pco-appointed": "Appointed PCO",
   "captain": "Precinct Captain",
@@ -16,8 +18,7 @@ export const ROLES = {
   "member": "Dues-paying member",
   "other": "Other or guest"
 };
-const NEEDS_PRECINCT = new Set(["pco-elected", "pco-appointed", "captain"]);
-// "comment" is used when someone doesn't pick a side.
+// "comment" is used when someone doesn't pick a side. The form offers support and oppose; the others are kept for earlier comments.
 export const POSITIONS = { support: "Support", oppose: "Oppose", changes: "Support with changes", question: "Question", comment: "Comment" };
 
 /* ---------- settings ---------- */
@@ -25,7 +26,7 @@ export const POSITIONS = { support: "Support", oppose: "Oppose", changes: "Suppo
 // Environment variables only change the starting values.
 export const DEFAULTS = Object.freeze({
   open: true,               // accept new comments
-  moderation: "hold",       // "hold": nothing shows until approved; "publish": shows at once
+  moderation: "publish",    // "publish": shows at once unless the automatic check holds it; "hold": nothing shows until approved
   ipPerHour: 6,             // accepted submissions per person (IP address) per rolling hour
   ipPerDay: 20,             // ... per rolling 24 hours
   allPerHour: 100,          // accepted submissions from everyone together per rolling hour
@@ -211,17 +212,20 @@ function limitMessage(slot) {
 }
 
 /* ---------- validation ---------- */
+// Only a name is required. Email and precinct are optional, so no one is turned away for skipping them.
 function validatePerson(b, errors) {
   const name = oneLine(b.name, 80);
   if (name.length < 2 || name.length > 80) errors.name = "Enter your name.";
-  const email = oneLine(b.email, 120).toLowerCase();
-  if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errors.email = "Enter a working email address.";
-  const role = typeof b.role === "string" && Object.prototype.hasOwnProperty.call(ROLES, b.role) ? b.role : null;
-  if (!role) errors.role = "Choose your role.";
+  const email = oneLine(typeof b.email === "string" ? b.email : "", 120).toLowerCase();
+  if (email && (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))) errors.email = "Check your email address, or leave it blank.";
   const precinct = oneLine(typeof b.precinct === "string" ? b.precinct : "", 16);
-  if (precinct && !/^[0-9A-Za-z][0-9A-Za-z -]{0,15}$/.test(precinct)) errors.precinct = "Use your precinct number, like 27-488.";
-  else if (!precinct && role && NEEDS_PRECINCT.has(role)) errors.precinct = "Enter your precinct number, like 27-488.";
-  return { name, email, role, precinct: precinct || null, ld: ldOf(precinct), showName: b.showName !== false };
+  if (precinct && !/^[0-9A-Za-z][0-9A-Za-z -]{0,15}$/.test(precinct)) errors.precinct = "Use your precinct number, like 27-488, or leave it blank.";
+  let role = null;
+  if (b.role != null && b.role !== "") {
+    if (typeof b.role === "string" && Object.prototype.hasOwnProperty.call(ROLES, b.role)) role = b.role;
+    else errors.role = "Choose your role.";
+  } else if (precinct) role = "pco";
+  return { name, email: email || null, role, precinct: precinct || null, ld: ldOf(precinct), showName: b.showName !== false };
 }
 
 function validateComment(b, cfg, errors) {
@@ -238,6 +242,67 @@ function validateComment(b, cfg, errors) {
   else if (text.length > cfg.maxCommentChars) errors.text = "Keep your comment under " + cfg.maxCommentChars.toLocaleString("en-US") + " characters.";
   else if (tooManyLinks(text)) errors.text = "Please include no more than three links.";
   return { target, position, text };
+}
+
+/* ---------- automatic hold ----------
+   With "Show right away" on, a comment that looks like spam or abuse still waits for the moderator.
+   Each check returns a short code; the admin page shows it in words. A false alarm only means a
+   comment waits for approval, so the checks lean toward holding. The word list is stored in ROT13
+   so the repository doesn't spell it out. */
+const rot13 = s => s.replace(/[a-z]/g, c => String.fromCharCode((c.charCodeAt(0) - 97 + 13) % 26 + 97));
+const WORDS = {
+  anywhere: "shpx fuvg",
+  prefix: "ovgpu onfgneq phag nffubyr wnpxnff qhzonff qvpxurnq pbpxfhpxre chffl juber fyhg gjng jnaxre qbhpur ergneq avttre avttn snttbg xvxr tbbx jrgonpx ornare gbjryurnq enturnq genaal",
+  exact: "snt fcvp puvax qlxr pbba"
+};
+const stretch = w => w.split("").map(ch => ch + "+").join(""); // "fuuuck" still matches
+const BAD_WORDS = [].concat(
+  rot13(WORDS.anywhere).split(" ").map(w => new RegExp(stretch(w))),
+  rot13(WORDS.prefix).split(" ").map(w => new RegExp("(?<![a-z])" + stretch(w))),
+  rot13(WORDS.exact).split(" ").map(w => new RegExp("(?<![a-z])" + stretch(w) + "(?:e?s)?(?![a-z])"))
+);
+const LEET = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s" };
+function plain(s) {
+  return String(s || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[013457@$]/g, c => LEET[c]);
+}
+const LINK_RE = /https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|net|org|info|biz|us|io|co|app|site|online|xyz|top|ru|cn|shop|link|click|live)\b/i;
+const EMAIL_RE = /[^\s@]+@[^\s@]+\.[a-z]{2,}/i;
+const PHONE_RE = /(?:\+?1[\s.-]?)?\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/;
+// A house number, one or two words, then a street type: "1234 S 56th St", "5512 Pacific Ave".
+const ADDRESS_RE = /\b\d{2,6}\s+(?:[nsew]\.?\s+|north\s+|south\s+|east\s+|west\s+)?(?:[a-z0-9'-]+\s+){1,2}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|highway|hwy|parkway|pkwy)\b/i;
+// Threats aimed at people. Figures of speech about proposals ("kill this amendment", "shot down") don't match.
+const THREAT_RES = [
+  /\b(?:kill|shoot|stab|hang|lynch|murder|strangle|choke)(?:s|ed|ing)?\s+(?:[a-z']+\s+){0,2}(?:you|him|her|them|y'?all|everyone|everybody)\b(?!\s+down)/,
+  /\b(?:you|he|she|they|y'?all)\s+(?:[a-z']+\s+){0,2}(?:deserves?|ought|should|needs?)\s+to\s+(?:die|be\s+(?:shot|hanged|hung|killed|lynched|beaten|executed|strung\s+up))\b(?!\s+down)/,
+  /\b(?:should|will|gonna|going\s+to|ought\s+to)\s+be\s+(?:shot|hanged|lynched|executed|strung\s+up)\b(?!\s+down)/,
+  /\b(?:i|we)\s+know\s+where\s+(?:you|he|she|they)\s+lives?\b/,
+  /\bwatch\s+(?:your|his|her|their)\s+back\b/,
+  /\b(?:you'?ll|you\s+will|you're\s+going\s+to)\s+(?:regret\s+it|be\s+sorry)\b/,
+  /\bdie\s+in\s+a\s+fire\b/,
+  /\bput\s+a\s+bullet\b|\bbullet\s+(?:in|through)\s+(?:your|his|her|their)\b/,
+  /\b(?:burn|torch)\s+(?:down\s+)?(?:your|his|her|their)\s+(?:house|home|car|office)\b/,
+  /\bblow\s+up\s+the\s+(?:building|hall|meeting|office)\b|\bbomb\s+(?:the|your|his|her|their)\s+(?:building|hall|meeting|office|house|home)\b/,
+  /\b(?:bring|bringing|brought)\s+(?:a|my|our)\s+(?:gun|rifle|pistol|weapon|knife)s?\s+to\b/
+];
+// Markup or script in a comment is almost always an attack or spam. It could never run here, because
+// the page shows comments as plain text, but it shouldn't sit on the public page either.
+const CODE_RE = /<\s*\/?\s*(?:script|iframe|img|svg|object|embed|style|form|input|link|meta|body|html|a)\b[^>]*>|javascript\s*:/i;
+
+export function screen(name, text) {
+  const both = (name || "") + "\n" + (text || ""), held = [];
+  const lower = (text || "").toLowerCase().replace(/[‘’]/g, "'");
+  if (THREAT_RES.some(re => re.test(lower))) held.push("threat");
+  const p = plain(both);
+  if (BAD_WORDS.some(re => re.test(p))) held.push("language");
+  if (EMAIL_RE.test(text || "") || PHONE_RE.test(text || "") || ADDRESS_RE.test(text || "")) held.push("contact");
+  if (LINK_RE.test(both.replace(new RegExp(EMAIL_RE.source, "gi"), " "))) held.push("link"); // an email address isn't a link
+  if (CODE_RE.test(both)) held.push("code");
+  const letters = (text || "").match(/[A-Za-z]/g) || [];
+  if (letters.length >= 30 && letters.filter(c => c >= "A" && c <= "Z").length / letters.length >= 0.7) held.push("caps");
+  if (/(\S)\1{9,}/.test(text || "")) held.push("repeat");
+  const all = (text || "").match(/\p{L}/gu) || [], latin = (text || "").match(/\p{Script=Latin}/gu) || [];
+  if (all.length >= 20 && (all.length - latin.length) / all.length > 0.3) held.push("script");
+  return held;
 }
 
 /* ---------- the public feed ---------- */
@@ -299,10 +364,12 @@ export async function handleSubmit(req, context, deps) {
   if (!slot.ok) {
     return json(429, { error: "rate_limited", scope: slot.scope, retryAfter: slot.retryAfter, message: limitMessage(slot) }, { "retry-after": String(slot.retryAfter) });
   }
+  const held = screen(person.name, item.text);
   const rec = {
-    id: makeId(t), kind, status: cfg.moderation === "publish" ? "live" : "pending",
+    id: makeId(t), kind, status: cfg.moderation === "publish" && !held.length ? "live" : "pending",
     created: new Date(t).toISOString(), ...person, ...item, ipHash
   };
+  if (held.length) rec.held = held;
   await stores.items.setJSON("item/" + rec.id, rec, { onlyIfNew: true });
   if (rec.status === "live") await upsertFeed(stores.items, publicView(rec));
   return json(200, { ok: true, status: rec.status, id: rec.id, item: rec.status === "live" ? publicView(rec) : null });
@@ -329,13 +396,13 @@ function csvCell(v) {
   if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // keep spreadsheets from running a cell as a formula
   return '"' + s.replace(/"/g, '""') + '"';
 }
-const CSV_COLS = ["id", "status", "created", "moderated", "target", "name", "email", "role", "precinct", "ld", "showName", "position", "text", "ipHash"];
+const CSV_COLS = ["id", "status", "created", "moderated", "target", "name", "email", "role", "precinct", "ld", "showName", "position", "text", "ipHash", "held"];
 
 export async function handleAdmin(req, context, deps) {
   const { stores, env = {}, now = Date.now } = deps;
   if (req.method !== "POST") return json(405, { error: "method" }, { allow: "POST" });
   if (!env.ADMIN_KEY || String(env.ADMIN_KEY).length < 12) {
-    return json(503, { error: "admin_disabled", message: "Set ADMIN_KEY (12 or more characters) in Netlify's environment variables, then redeploy." });
+    return json(503, { error: "admin_disabled", message: "Set ADMIN_KEY (12 or more characters) in Netlify's environment variables, without “Contains secret values” ticked, then redeploy." });
   }
   const t = now();
   const failKey = "adminfail/" + hashIp(clientIp(req, context), env);

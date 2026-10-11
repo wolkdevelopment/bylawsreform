@@ -2,7 +2,8 @@
 
 This is the Bylaws Workbench with two additions:
 
-- **Comments on every repair.** Each repair card has an **Add a comment** button and shows its latest comments. A comment carries the commenter's name, role and precinct, and optionally where they stand (support, oppose, support with changes, or question). Returning commenters see their details on one line instead of retyping them.
+- **Comments on every repair.** Each repair card has an **Add a comment** button and shows its latest comments. Only the comment and a name are required. PCOs can add their precinct, anyone can add an email that only the moderator sees, and anyone can mark Support or Oppose. Returning commenters see their details on one line instead of retyping them.
+- **Comments show right away, with an automatic hold.** A comment that looks like spam or abuse waits for your approval instead (see "Moderation").
 - **Rate limits you set yourself.** Limits apply per person and to everyone together. You change them on the admin page, with no redeploy.
 
 ## What's in the folder
@@ -22,11 +23,11 @@ This is the Bylaws Workbench with two additions:
    - Alternatively, use the Netlify CLI: run `npm install`, then `npx netlify deploy --prod` from this folder.
    - Don't use drag-and-drop upload. It doesn't build the functions, so comments wouldn't work.
 2. **Set environment variables** in the project's settings:
-   - `ADMIN_KEY` (required): a long random password, at least 12 characters. It opens the admin page. Keep it secret.
+   - `ADMIN_KEY` (required): a long random password, at least 12 characters. It opens the admin page. Keep it private, but leave **Contains secret values** unticked: Netlify never shows a secret value again, and secret values have been reported missing inside Functions.
    - `IP_SALT` (recommended): any long random string. It scrambles IP addresses before they're stored.
    - Optional starting values, all changeable later on the admin page: `RL_IP_PER_HOUR`, `RL_IP_PER_DAY`, `RL_ALL_PER_HOUR`, `RL_ALL_PER_DAY`, `MODERATION` (`hold` or `publish`), `MAX_COMMENT_CHARS`.
 3. **Redeploy** so the functions pick up the variables. Then open `https://your-site.netlify.app/admin/` and sign in with `ADMIN_KEY`.
-4. **Post a test comment** on the public page, approve it on the admin page, and check that it appears within about a minute.
+4. **Post a test comment** on the public page and check that it appears. Then post one with a link in it and check that it waits on the admin page. Approve or delete it there.
 
 Storage uses Netlify Blobs, which is built into Netlify. There's no database to create.
 
@@ -52,8 +53,9 @@ Things to know:
 
 ## Moderation
 
-- **Wait for my approval** (the default): nothing appears until you approve it on the admin page.
-- **Show right away**: posts appear at once. You can still hide or delete anything.
+- **Show right away** (the default): comments appear at once, except ones the automatic check holds. Those wait under **Waiting** on the admin page, marked with the reason. The person is told a moderator will read the comment first.
+- The automatic check holds a comment that has a possible threat of violence, strong language or a slur, an email address, phone number or street address, a link, code or HTML, mostly capital letters, a long run of one character, or mostly another alphabet. It never deletes or rejects anything for these reasons. A false alarm only means you approve it. Figures of speech about proposals ("kill this amendment," "shot down") pass. It won't catch a politely worded personal attack, so hide anything like that yourself.
+- **Wait for my approval**: nothing appears until you approve it on the admin page.
 - **Accept new comments: No** stops new comments and leaves existing ones up.
 - **Hide** takes a post off the public page and keeps it. **Delete** removes it for good.
 - The public list updates within about a minute of any change, because Netlify caches it for up to a minute.
@@ -61,9 +63,10 @@ Things to know:
 ## Privacy
 
 - Emails are never shown publicly. Only the admin page and the CSV download include them.
-- Names and precincts appear only if the person ticks "Show my name and precinct." Otherwise the page shows "Name withheld," the role, and the legislative district taken from the precinct number.
+- Names and precincts appear unless the person unticks "Show my name and precinct with my comment." Then the page shows "Name withheld," "PCO" if they gave a precinct, and the legislative district taken from the precinct number.
 - IP addresses are never stored. Each one is scrambled with `IP_SALT` into a code that can't be turned back into an address. The admin page uses that code to show how many posts came from the same connection.
-- Precincts and roles are whatever people type. To confirm someone is a PCO, match their email against the PCO list in the CSV.
+- Precincts are whatever people type, and a precinct is what marks a comment "PCO." To confirm someone is a PCO, check their name, precinct and email (if they gave one) against the PCO list.
+- Comments are always shown as plain text, so code typed into a comment can't run, and there's no database query language to inject into. The CSV defuses spreadsheet formulas, and a Content-Security-Policy header limits what the pages may load or send.
 - The CSV includes emails, so keep it private. It defuses spreadsheet formulas in posted text.
 
 ## Costs on Netlify's free plan
@@ -78,7 +81,7 @@ You need Node.js 22.12 or newer.
 
 ```
 npm run dev        # http://localhost:8888 (admin key: local-admin-key)
-npm test           # 9 tests: limits, moderation, privacy, validation, admin lockout
+npm test           # 10 tests: limits, moderation, automatic hold, privacy, validation, admin lockout
 ```
 
 The local server keeps posts in memory, so they vanish when you stop it. It doesn't need `npm install`.
