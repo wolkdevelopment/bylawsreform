@@ -18,11 +18,6 @@ function post(path, body, headers = {}) {
 }
 const person = { name: "Pat Example", email: "pat@example.com", role: "pco-elected", precinct: "27-488", showName: true };
 const comment = (extra = {}) => ({ kind: "comment", target: "r:B2", position: "support", text: "This is fair.", ...person, ...extra });
-const proposal = (extra = {}) => ({
-  kind: "proposal", title: "Clearer guest rule", why: "Guests should know the rules.", mode: "change", section: "4.2",
-  nodes: [{ k: "p", t: "In addition to the Biennial Organization Meeting, the CC shall meet at least four (4) times each calendar year." }],
-  ...person, ...extra
-});
 async function submit(env, body, ip = "1.1.1.1") { const res = await handleSubmit(post("/api/submit", body), { ip }, env.deps); return { status: res.status, body: await res.json(), res }; }
 async function admin(env, body, key = KEY, ip = "9.9.9.9") { const res = await handleAdmin(post("/api/admin", body, { "x-admin-key": key }), { ip }, env.deps); return { status: res.status, body: await res.json() }; }
 async function feed(env) { const res = await handleFeed(new Request("https://site.test/api/feed"), {}, env.deps); return { status: res.status, body: await res.json(), res }; }
@@ -138,27 +133,25 @@ test("validation, honeypot, closed switch and request checks", async () => {
   assert.equal(get.status, 405);
 });
 
-test("proposals: checks, add mode, closing, and comments on a proposal", async () => {
+test("only comments are accepted, and taking a side is optional", async () => {
   const e = setup();
-  let r = await submit(e, proposal({ section: "99.9" }));
-  assert.equal(r.status, 400); assert.ok(r.body.fields.section);
-  r = await submit(e, proposal({ mode: "add", newId: "4.2" }));
-  assert.equal(r.status, 400); assert.ok(r.body.fields.newId);
-  r = await submit(e, proposal({ nodes: [{ k: "i", l: "<b>", t: "x" }] }));
-  assert.equal(r.status, 400); assert.ok(r.body.fields.nodes);
-  r = await submit(e, proposal({ mode: "add", newId: "4.8", newTitle: "Remote Attendance", section: "4.7.3" }));
-  assert.equal(r.status, 200);
-  const pid = r.body.id;
-  let c = await submit(e, comment({ target: "p:" + pid }));
-  assert.equal(c.status, 400); // not approved yet
-  await admin(e, { action: "set-status", id: pid, status: "live" });
-  c = await submit(e, comment({ target: "p:" + pid }));
-  assert.equal(c.status, 200);
+  await configure(e, { moderation: "publish" });
+  let r = await submit(e, { ...comment(), kind: "proposal", title: "Anything" });
+  assert.equal(r.status, 400); assert.ok(r.body.fields.kind);
+  r = await submit(e, comment({ target: "p:mabcdefg-0123456789" }));
+  assert.equal(r.status, 400); assert.ok(r.body.fields.target);
+  r = await submit(e, comment({ position: undefined }));
+  assert.equal(r.status, 200); assert.equal(r.body.item.position, "comment");
+  r = await submit(e, comment({ position: "" }));
+  assert.equal(r.status, 200); assert.equal(r.body.item.position, "comment");
+  r = await submit(e, comment({ position: "maybe" }));
+  assert.equal(r.status, 400); assert.ok(r.body.fields.position);
+  // Old saved settings that still mention proposals are ignored, not an error.
+  await e.stores.config.setJSON("settings", { ...DEFAULTS, proposalsOpen: false, maxProposalChars: 9000, moderation: "publish" });
   const f = await feed(e);
-  assert.equal(f.body.items[0].kind, "proposal"); assert.equal(f.body.items[0].newId, "4.8");
-  await configure(e, { proposalsOpen: false });
-  assert.equal((await submit(e, proposal())).status, 403);
-  assert.equal((await submit(e, comment())).status, 200); // comments still open
+  assert.equal(f.status, 200);
+  assert.deepEqual(Object.keys(f.body.config).sort(), ["maxCommentChars", "moderation", "open"]);
+  assert.ok(f.body.items.every(x => x.kind === "comment"));
 });
 
 test("admin: key required, lockout after ten wrong keys, export and cleanup", async () => {
@@ -171,7 +164,7 @@ test("admin: key required, lockout after ten wrong keys, export and cleanup", as
   await submit(e, comment({ text: "=HYPERLINK(\"http://x\")" }));
   const ex = await admin(e, { action: "export" });
   assert.equal(ex.body.count, 1);
-  assert.match(ex.body.csv, /^"id","kind"|^id,kind/);
+  assert.match(ex.body.csv, /^id,status,created,/);
   assert.ok(ex.body.csv.includes("\"'=HYPERLINK"), "formula cells are defused");
   e.t.now += 2 * 86400e3;
   const cl = await admin(e, { action: "cleanup" });

@@ -271,54 +271,38 @@ td.fixes { min-width: 8.5rem; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
-/* ---------- website edition: comments and member proposals ---------- */
+/* ---------- website edition: comments ---------- */
 .btn:disabled { opacity: .55; cursor: not-allowed; }
-.talk { border-top: 1px solid var(--rule); padding-top: .7rem; display: grid; gap: .7rem; }
-.talk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .9rem; }
-.talk-toggle { font: inherit; font-weight: 700; color: var(--navy); background: transparent; border: 2px solid var(--navy); border-radius: 8px; min-height: 2.75rem; padding: .3rem .9rem; cursor: pointer; }
-.talk-toggle[aria-expanded="true"] { background: var(--navy); color: var(--navy-ink); }
-.talk-sum { color: var(--ink-2); font-size: 1rem; }
-.talk-panel { display: grid; gap: .75rem; }
-.talk-add { justify-self: start; }
-.talk-list { list-style: none; padding: 0; display: grid; gap: .6rem; }
-.talk-list:empty { display: none; }
+.talk { border-top: 1px solid var(--rule); padding-top: .8rem; display: grid; gap: .7rem; }
+.talk-sum { font-weight: 700; color: var(--ink-2); }
+.talk-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.talk-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; }
+.talk-list:empty, .talk-status:empty { display: none; }
 .cmt { background: var(--paper); border-radius: 8px; padding: .65rem .8rem; display: grid; gap: .3rem; }
 .cmt-head { font-size: 1rem; color: var(--ink-2); display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .5rem; }
-.cmt-text, .keep-lines { white-space: pre-wrap; overflow-wrap: anywhere; }
+.cmt-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .pos { display: inline-block; font-size: .85rem; font-weight: 700; padding: .05rem .55rem; border-radius: 999px; }
 .pos-support { background: var(--good-bg); color: var(--good); }
 .pos-oppose { background: var(--bad-bg); color: var(--bad); }
 .pos-changes { background: var(--flag-bg); color: var(--flag-ink); }
-.pos-question { background: var(--navy-tint); color: var(--navy); }
-.talk-form, .builder { display: grid; gap: 1rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1rem; min-width: 0; }
-.talk-form { background: var(--paper); }
+.pos-question, .pos-comment { background: var(--navy-tint); color: var(--navy); }
+.linkish { font: inherit; font-weight: 700; color: var(--navy); background: none; border: 0; padding: .35rem 0; min-height: 2.75rem; cursor: pointer; text-decoration: underline; text-underline-offset: .18em; justify-self: start; }
+.talk-form { display: grid; gap: 1rem; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1rem; min-width: 0; }
 .form-head { font-weight: 700; }
 .field { display: grid; gap: .3rem; min-width: 0; }
 .field > label { font-weight: 700; }
 .field input:not([type="radio"]):not([type="checkbox"]), .field select, .field textarea { font: inherit; width: 100%; max-width: 100%; min-height: 3rem; padding: .5rem .65rem; color: var(--ink); background: var(--sheet); border: 2px solid var(--rule-strong); border-radius: 8px; }
 .field textarea { min-height: 7rem; resize: vertical; line-height: 1.5; }
 .field.err input:not([type="radio"]):not([type="checkbox"]), .field.err select, .field.err textarea { border-color: var(--bad); }
-.field.err .seg-err, .pos-pick.err label { border-color: var(--bad); }
 .err-msg { color: var(--bad); font-weight: 700; font-size: 1rem; }
 .counter { margin-top: -.6rem; }
-.person { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 1rem; }
-.person legend { padding: 0; margin-bottom: .5rem; font-weight: 700; font-size: 1.15rem; }
+.pos-pick legend { font-weight: 700; }
+.person { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: .6rem; }
+.person legend { padding: 0; margin-bottom: .4rem; font-weight: 700; font-size: 1.1rem; }
+.person-fields { display: grid; gap: 1rem; }
+.who { overflow-wrap: anywhere; }
+.who .linkish { min-height: 0; padding: 0; }
 .hp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
-.notice { background: var(--flag-bg); color: var(--flag-ink); border: 1px solid var(--flag-rule); border-radius: 8px; padding: .55rem .8rem; }
-.builder h3 { font-size: 1.2rem; padding-top: .3rem; }
-.pb-out { display: grid; gap: .6rem; border-top: 1px solid var(--rule); padding-top: .8rem; min-width: 0; }
-.pb-out .rl-text { font-family: var(--font-rule); }
-.pb-motion { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-rule); font-size: 1.05rem; line-height: 1.55; background: var(--paper); border-radius: 8px; padding: .7rem .9rem; margin: 0; }
-.pb-motion:empty { display: none; }
-.bad-line { color: var(--bad); font-weight: 700; }
-.good-line { color: var(--good); font-weight: 700; }
-.mp-by { color: var(--ink-2); font-size: 1rem; }
-.mp .card-head .chip { margin-left: auto; }
-.mp-exact > summary { cursor: pointer; font-weight: 700; color: var(--navy); min-height: 2.75rem; display: flex; align-items: center; gap: .5rem; width: fit-content; list-style: none; }
-.mp-exact > summary::-webkit-details-marker { display: none; }
-.mp-exact > summary::before { content: "+"; flex: none; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border: 2px solid currentColor; border-radius: 50%; font-size: 1.1rem; line-height: 1; }
-.mp-exact[open] > summary::before { content: "\2212"; }
-.mp-exact .redline { display: grid; gap: .8rem; padding-top: .5rem; }
 </style>
 
 <header class="bar">
@@ -346,8 +330,6 @@ td.fixes { min-width: 8.5rem; }
           <li><a href="#fall">The fall proposals, one by one</a></li>
           <li><a href="#read">Read the bylaws</a></li>
           <li><a href="#next">What happens next</a></li>
-          <li><a href="#propose">Propose an amendment</a></li>
-          <li><a href="#members">Members' proposals</a></li>
           <li><a href="#covered">Nothing left out</a></li>
           <li><a href="#words">Words used on this page</a></li>
         </ol>
@@ -394,7 +376,7 @@ td.fixes { min-width: 8.5rem; }
         <li><span>To see the legal wording, open <strong>See the exact wording</strong>. Words being removed are crossed out, <del>like this</del>. New words are underlined, <ins>like this</ins>.</span></li>
         <li><span>Every repair starts out included. Switch one off to leave it out, and the scores at the top change right away.</span></li>
         <li><span>When you're ready, the page <a href="#next">writes the amendments</a> for the repairs you kept.</span></li>
-        <li><span>Tell us what you think. Every repair has a <strong>Comments</strong> button, and you can <a href="#propose">propose an amendment of your own</a>.</span></li>
+        <li><span>Tell us what you think. Every repair has an <strong>Add a comment</strong> button.</span></li>
       </ol>
       <p class="hint">Each repair also shows its number in the formal submission, such as “Submitted as Amendment 13.” Those are the numbers used in emails and at meetings.</p>
       <p class="hint">To make the text bigger, use the A+ and A++ buttons at the top of the screen.</p>
@@ -472,76 +454,6 @@ td.fixes { min-width: 8.5rem; }
         <p class="status" id="copy-status" aria-live="polite"></p>
       </div>
     </div>
-  </section>
-
-  <section class="sec" id="propose" aria-labelledby="propose-h">
-    <h2 id="propose-h">Propose an amendment</h2>
-    <p>Write your own change to the bylaws or standing rules. As you type, the page marks what changes, checks it against the same seven standards as the repairs above, and writes the formal wording for you.</p>
-    <div class="builder" id="builder">
-      <p class="notice" id="pb-closed" hidden></p>
-      <fieldset class="seg" id="pb-mode">
-        <legend>What do you want to do?</legend>
-        <input type="radio" name="pb-mode" id="pb-mode-change" value="change" checked><label for="pb-mode-change">Change a section</label>
-        <input type="radio" name="pb-mode" id="pb-mode-add" value="add"><label for="pb-mode-add">Add a new section</label>
-      </fieldset>
-      <div class="field" data-field="section">
-        <label for="pb-sec" id="pb-sec-label">Section to change</label>
-        <select id="pb-sec" aria-describedby="pb-sec-err"></select>
-        <p class="err-msg" id="pb-sec-err" hidden></p>
-      </div>
-      <div class="pb-add" hidden>
-        <div class="field" data-field="newId">
-          <label for="pb-newid">Number for the new section</label>
-          <input id="pb-newid" autocomplete="off" maxlength="16" placeholder="For example, 4.8" aria-describedby="pb-newid-hint pb-newid-err">
-          <p class="hint" id="pb-newid-hint" hidden></p>
-          <p class="err-msg" id="pb-newid-err" hidden></p>
-        </div>
-        <div class="field" data-field="newTitle">
-          <label for="pb-newtitle">Title of the new section (optional)</label>
-          <input id="pb-newtitle" autocomplete="off" maxlength="120">
-        </div>
-      </div>
-      <div class="field" data-field="text">
-        <label for="pb-text">Your wording</label>
-        <textarea id="pb-text" rows="9" spellcheck="true" aria-describedby="pb-text-hint pb-text-err"></textarea>
-        <p class="hint" id="pb-text-hint">Put each paragraph on its own line. To make a lettered item, start the line with “A.”, “B.” and so on.</p>
-        <p class="err-msg" id="pb-text-err" hidden></p>
-      </div>
-      <div class="pb-out" id="pb-out" hidden>
-        <h3>What changes</h3>
-        <div id="pb-redline"></div>
-        <h3>What the seven standards say</h3>
-        <div id="pb-checks" aria-live="polite"></div>
-        <h3>The formal wording</h3>
-        <pre class="pb-motion" id="pb-motion"></pre>
-        <div class="row"><button type="button" class="btn quiet small" id="pb-copy">Copy the wording</button><p class="status" id="pb-copy-status" aria-live="polite"></p></div>
-      </div>
-      <h3>Explain it</h3>
-      <div class="field" data-field="title">
-        <label for="pb-title">A short title</label>
-        <input id="pb-title" maxlength="120" autocomplete="off" aria-describedby="pb-title-err">
-        <p class="err-msg" id="pb-title-err" hidden></p>
-      </div>
-      <div class="field" data-field="why">
-        <label for="pb-why">Why it's needed, in a sentence or two</label>
-        <textarea id="pb-why" rows="3" maxlength="3000" aria-describedby="pb-why-err"></textarea>
-        <p class="err-msg" id="pb-why-err" hidden></p>
-      </div>
-      <div id="pb-person"></div>
-      <p class="hint" id="pb-moderated" hidden>A moderator reviews proposals before they appear.</p>
-      <div class="row">
-        <button type="button" class="btn" id="pb-send">Post this proposal</button>
-        <button type="button" class="btn quiet" id="pb-reset">Start over</button>
-      </div>
-      <p class="status" id="pb-status" aria-live="polite"></p>
-      <p class="hint">Posting here shares your idea with members. To put a bylaw amendment before the Central Committee, it must also go in writing to the county chair at least 14 days before the meeting (Bylaw 10.1). <strong>Copy the wording</strong> gives you the text to send.</p>
-    </div>
-  </section>
-
-  <section class="sec" id="members" aria-labelledby="members-h">
-    <h2 id="members-h">Members' proposals</h2>
-    <p>Each one is checked against the seven standards, the same way as the repairs. <span id="members-sum"></span></p>
-    <div class="cards" id="member-list"></div>
   </section>
 
   <section class="sec" id="covered" aria-labelledby="covered-h">
@@ -1908,12 +1820,13 @@ if (typeof module !== "undefined") module.exports = Engine;
 
 </script>
 <script>
-/* PCRP Bylaws Workbench, website edition: member comments and member proposals.
-   Needs the page's globals (BASE, CHANGES, PRE, CHECKS and the rule lists) and Engine.
-   Talks to /api/feed and /api/submit. Everything people type is shown with textContent, never as HTML. */
+/* PCRP Bylaws Workbench, website edition: comments on each repair.
+   Needs the page's globals (CHANGES, PRE). Talks to /api/feed and /api/submit.
+   Everything people type is shown with textContent, never as HTML. */
 (function () {
   "use strict";
   var API = "/api";
+  var SHOWN = 2; // comments shown on a card before "Show all"
   function $(s, r) { return (r || document).querySelector(s); }
   function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
   function getItem(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
@@ -1933,7 +1846,6 @@ if (typeof module !== "undefined") module.exports = Engine;
       else if (k === "on") Object.keys(v).forEach(function (ev) { el.addEventListener(ev, v[ev]); });
       else if (k === "hidden") el.hidden = !!v;
       else if (k === "checked") el.checked = !!v;
-      else if (k === "value") el.value = v;
       else el.setAttribute(k, v === true ? "" : String(v));
     });
     (kids || []).forEach(function (c) {
@@ -1943,22 +1855,21 @@ if (typeof module !== "undefined") module.exports = Engine;
     return el;
   }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+  function count(n) { try { return n.toLocaleString("en-US"); } catch (e) { return String(n); } }
   function fmtDate(iso) {
     var d = new Date(iso);
     if (isNaN(d)) return "";
     try { return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" }); }
     catch (e) { return d.toDateString(); }
   }
-  function count(n) { try { return n.toLocaleString("en-US"); } catch (e) { return String(n); } }
 
   var ROLES = [["pco-elected", "Elected PCO"], ["pco-appointed", "Appointed PCO"], ["captain", "Precinct Captain"], ["county-officer", "County party officer"], ["district-officer", "District officer"], ["member", "Dues-paying member"], ["other", "Other or guest"]];
   var ROLE_NAME = {}; ROLES.forEach(function (r) { ROLE_NAME[r[0]] = r[1]; });
   var NEEDS_PRECINCT = { "pco-elected": 1, "pco-appointed": 1, "captain": 1 };
   var POSITIONS = [["support", "Support"], ["oppose", "Oppose"], ["changes", "Support with changes"], ["question", "Question"]];
-  var POS_NAME = {}; POSITIONS.forEach(function (p) { POS_NAME[p[0]] = p[1]; });
+  var POS_NAME = { comment: "Comment" }; POSITIONS.forEach(function (p) { POS_NAME[p[0]] = p[1]; });
 
-  var S = { ready: false, failed: false, items: [], config: { open: true, proposalsOpen: true, moderation: "hold", maxCommentChars: 2000, maxProposalChars: 8000 } };
-  var REPAIR_IDS = {}; CHANGES.forEach(function (c) { if (c.g !== "pkg") REPAIR_IDS[c.id] = c; });
+  var S = { ready: false, failed: false, items: [], config: { open: true, moderation: "hold", maxCommentChars: 2000 } };
 
   /* ---------- talking to the server ---------- */
   function call(path, opts, ms) {
@@ -1978,7 +1889,7 @@ if (typeof module !== "undefined") module.exports = Engine;
   }
   function load() {
     call("/feed", { method: "GET", headers: { accept: "application/json" } }, 12000).then(function (d) {
-      S.items = Array.isArray(d.items) ? d.items : [];
+      S.items = (Array.isArray(d.items) ? d.items : []).filter(function (x) { return x && x.kind === "comment"; });
       if (d.config) Object.keys(d.config).forEach(function (k) { S.config[k] = d.config[k]; });
       S.ready = true; S.failed = false;
       renderAll();
@@ -1991,26 +1902,9 @@ if (typeof module !== "undefined") module.exports = Engine;
 
   /* ---------- who is posting ---------- */
   var me = getJSON("bw-me") || {};
-  function personFields(prefix) {
-    var role = h("select", { id: prefix + "-role", name: "role", required: true }, [h("option", { value: "", text: "Choose one…" })].concat(ROLES.map(function (r) {
-      return h("option", { value: r[0], text: r[1] });
-    })));
-    var box = h("fieldset", { class: "person" }, [
-      h("legend", { text: "About you" }),
-      field(prefix, "name", "Your name", h("input", { id: prefix + "-name", name: "name", autocomplete: "name", maxlength: "80", required: true })),
-      field(prefix, "email", "Your email", h("input", { id: prefix + "-email", name: "email", type: "email", autocomplete: "email", maxlength: "120", required: true }), "Only the site's moderator sees your email. It's used to confirm who you are."),
-      field(prefix, "role", "Your role", role),
-      field(prefix, "precinct", "Your precinct", h("input", { id: prefix + "-precinct", name: "precinct", autocomplete: "off", maxlength: "16", placeholder: "For example, 27-488" }), "Needed if you're a PCO or Precinct Captain."),
-      h("label", { class: "check", for: prefix + "-show" }, [h("input", { type: "checkbox", id: prefix + "-show", name: "showName", checked: me.showName !== false }), " Show my name and precinct with what I post"]),
-      h("label", { class: "check", for: prefix + "-remember" }, [h("input", { type: "checkbox", id: prefix + "-remember", name: "remember", checked: me.remember !== false }), " Remember my details on this device"]),
-      // A trap for bots: hidden from people and screen readers, named so browsers won't autofill it.
-      h("div", { class: "hp", "aria-hidden": "true" }, [h("label", { for: prefix + "-hpn" }, ["Leave this empty", h("input", { id: prefix + "-hpn", name: "hpn-" + prefix, tabindex: "-1", autocomplete: "off" })])])
-    ]);
-    $("#" + prefix + "-name", box).value = me.name || "";
-    $("#" + prefix + "-email", box).value = me.email || "";
-    $("#" + prefix + "-role", box).value = me.role || "";
-    $("#" + prefix + "-precinct", box).value = me.precinct || "";
-    return box;
+  function known() { return !!(me.name && me.email && me.role && (me.precinct || !NEEDS_PRECINCT[me.role])); }
+  function whoText() {
+    return [me.name, ROLE_NAME[me.role], me.precinct ? "Precinct " + me.precinct : ""].filter(Boolean).join(" · ");
   }
   function field(prefix, name, label, input, hint) {
     var hintId = hint ? prefix + "-" + name + "-hint" : null, errId = prefix + "-" + name + "-err";
@@ -2021,6 +1915,36 @@ if (typeof module !== "undefined") module.exports = Engine;
       h("p", { class: "err-msg", id: errId, hidden: true })
     ]);
   }
+  function personFields(prefix) {
+    var role = h("select", { id: prefix + "-role", name: "role" }, [h("option", { value: "", text: "Choose one…" })].concat(ROLES.map(function (r) {
+      return h("option", { value: r[0], text: r[1] });
+    })));
+    var fields = h("div", { class: "person-fields" }, [
+      field(prefix, "name", "Your name", h("input", { id: prefix + "-name", name: "name", autocomplete: "name", maxlength: "80" })),
+      field(prefix, "email", "Your email (kept private)", h("input", { id: prefix + "-email", name: "email", type: "email", autocomplete: "email", maxlength: "120" }), "Only the site's moderator sees it. It's used to confirm who you are."),
+      field(prefix, "role", "Your role", role),
+      field(prefix, "precinct", "Your precinct", h("input", { id: prefix + "-precinct", name: "precinct", autocomplete: "off", maxlength: "16", placeholder: "For example, 27-488" }), "Needed if you're a PCO or Precinct Captain."),
+      h("label", { class: "check", for: prefix + "-show" }, [h("input", { type: "checkbox", id: prefix + "-show", name: "showName", checked: me.showName !== false }), " Show my name and precinct with my comment"]),
+      h("label", { class: "check", for: prefix + "-remember" }, [h("input", { type: "checkbox", id: prefix + "-remember", name: "remember", checked: me.remember !== false }), " Remember me on this device"])
+    ]);
+    var box = h("fieldset", { class: "person" }, [h("legend", { text: "About you" })]);
+    if (known()) {
+      // Returning commenters see one line instead of six fields.
+      var change = h("button", { type: "button", class: "linkish", text: "Change" });
+      var line = h("p", { class: "who" }, ["Posting as ", h("strong", { text: whoText() }), me.showName === false ? " (name hidden from the public)" : "", ". ", change]);
+      fields.hidden = true;
+      change.addEventListener("click", function () { line.remove(); fields.hidden = false; $("input", fields).focus(); });
+      box.appendChild(line);
+    }
+    box.appendChild(fields);
+    // A trap for bots: hidden from people and screen readers, named so browsers won't autofill it.
+    box.appendChild(h("div", { class: "hp", "aria-hidden": "true" }, [h("label", { for: prefix + "-hpn" }, ["Leave this empty", h("input", { id: prefix + "-hpn", name: "hpn-" + prefix, tabindex: "-1", autocomplete: "off" })])]));
+    $("#" + prefix + "-name", box).value = me.name || "";
+    $("#" + prefix + "-email", box).value = me.email || "";
+    $("#" + prefix + "-role", box).value = me.role || "";
+    $("#" + prefix + "-precinct", box).value = me.precinct || "";
+    return box;
+  }
   function readPerson(root, prefix) {
     var p = {
       name: $("#" + prefix + "-name", root).value.trim(),
@@ -2030,9 +1954,10 @@ if (typeof module !== "undefined") module.exports = Engine;
       showName: $("#" + prefix + "-show", root).checked,
       website: $("#" + prefix + "-hpn", root).value
     };
-    var remember = $("#" + prefix + "-remember", root).checked;
-    if (remember) { me = { name: p.name, email: p.email, role: p.role, precinct: p.precinct, showName: p.showName, remember: true }; setItem("bw-me", JSON.stringify(me)); }
-    else { me = { remember: false }; delItem("bw-me"); }
+    if ($("#" + prefix + "-remember", root).checked) {
+      me = { name: p.name, email: p.email, role: p.role, precinct: p.precinct, showName: p.showName, remember: true };
+      setItem("bw-me", JSON.stringify(me));
+    } else { me = { remember: false }; delItem("bw-me"); }
     return p;
   }
   function checkPerson(p, errors) {
@@ -2042,22 +1967,27 @@ if (typeof module !== "undefined") module.exports = Engine;
     if (!p.precinct && NEEDS_PRECINCT[p.role]) errors.precinct = "Enter your precinct number, like 27-488.";
   }
   function showErrors(root, errors) {
+    var keys = Object.keys(errors);
+    // If a remembered detail is the problem, open the fields so it can be fixed.
+    if (keys.some(function (k) { return ["name", "email", "role", "precinct"].indexOf(k) >= 0; })) {
+      var pf = $(".person-fields", root), who = $(".who", root);
+      if (pf) pf.hidden = false;
+      if (who) who.remove();
+    }
     $$(".field", root).forEach(function (f) {
-      var name = f.getAttribute("data-field"), msg = errors[name], m = $(".err-msg", f);
+      var msg = errors[f.getAttribute("data-field")], m = $(".err-msg", f);
       f.classList.toggle("err", !!msg);
       if (m) { m.hidden = !msg; m.textContent = msg || ""; }
       var input = $("input, select, textarea", f);
       if (input) { if (msg) input.setAttribute("aria-invalid", "true"); else input.removeAttribute("aria-invalid"); }
     });
-    var first = Object.keys(errors)[0];
-    if (first) {
-      var bad = $('.field[data-field="' + first + '"] input, .field[data-field="' + first + '"] select, .field[data-field="' + first + '"] textarea', root);
+    if (keys[0]) {
+      var bad = $('.field[data-field="' + keys[0] + '"] input, .field[data-field="' + keys[0] + '"] select, .field[data-field="' + keys[0] + '"] textarea', root);
       if (bad) bad.focus();
     }
   }
   function byline(x) {
-    var parts = [];
-    parts.push(x.name || "Name withheld");
+    var parts = [x.name || "Name withheld"];
     if (ROLE_NAME[x.role]) parts.push(ROLE_NAME[x.role]);
     if (x.precinct) parts.push("Precinct " + x.precinct);
     else if (x.ld) parts.push("LD " + x.ld);
@@ -2070,81 +2000,83 @@ if (typeof module !== "undefined") module.exports = Engine;
     if (err && err.httpStatus === 429) return "Too many tries from your connection. Wait a minute and try again.";
     return "Something went wrong. Please try again.";
   }
-  function thanks(status, what) {
-    return status === "live" ? "Thank you. Your " + what + " is posted." : "Thank you. A moderator will review your " + what + " before it appears.";
-  }
 
-  /* ---------- comments on a repair or a member proposal ---------- */
-  function commentsFor(target) { return S.items.filter(function (x) { return x.kind === "comment" && x.target === target; }); }
-  function summary(list) {
+  /* ---------- comments on a card ---------- */
+  function commentsFor(target) {
+    return S.items.filter(function (x) { return x.target === target; })
+      .sort(function (a, b) { return a.created < b.created ? 1 : a.created > b.created ? -1 : 0; }); // newest first
+  }
+  function summaryText(list) {
+    if (!list.length) return "No comments yet. Yours could be the first.";
     var n = {};
     list.forEach(function (c) { n[c.position] = (n[c.position] || 0) + 1; });
-    return POSITIONS.filter(function (p) { return n[p[0]]; }).map(function (p) { return n[p[0]] + " " + p[1].toLowerCase(); }).join(" · ");
+    // Count the sides people took; comments without a side are in the total only.
+    var parts = POSITIONS.filter(function (p) { return n[p[0]]; }).map(function (p) {
+      return n[p[0]] + " " + (p[0] === "question" && n[p[0]] > 1 ? "questions" : p[1].toLowerCase());
+    });
+    return plural(list.length, "comment", "comments") + (parts.length ? ": " + parts.join(", ") : "") + ".";
   }
   function talkBlock(target, labelText) {
-    var safe = target.replace(/[^A-Za-z0-9]/g, "-"), panelId = "talk-" + safe;
-    var wrap = h("div", { class: "talk", "data-target": target });
-    var toggle = h("button", { type: "button", class: "talk-toggle", "aria-expanded": "false", "aria-controls": panelId }, [
-      h("span", { class: "talk-word", text: "Comments" }), " ", h("span", { class: "talk-n" })
-    ]);
-    var panel = h("div", { class: "talk-panel", id: panelId, hidden: true }, [
-      h("ul", { class: "talk-list", "aria-label": "Comments on " + labelText }),
-      h("p", { class: "talk-empty", hidden: true, text: "No comments yet." }),
-      h("button", { type: "button", class: "btn quiet small talk-add", text: "Add your comment" }),
-      h("div", { class: "talk-form-slot" }),
-      h("p", { class: "talk-status status", "aria-live": "polite" })
-    ]);
-    wrap.appendChild(h("div", { class: "talk-bar" }, [toggle, h("span", { class: "talk-sum" })]));
-    wrap.appendChild(panel);
-    toggle.addEventListener("click", function () {
-      var open = toggle.getAttribute("aria-expanded") !== "true";
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      panel.hidden = !open;
+    var wrap = h("section", { class: "talk", "data-target": target, "aria-label": "Comments on " + labelText });
+    var add = h("button", { type: "button", class: "btn talk-add", text: "Add a comment" });
+    var more = h("button", { type: "button", class: "linkish talk-more", hidden: true });
+    wrap.appendChild(h("p", { class: "talk-sum" }));
+    wrap.appendChild(h("ul", { class: "talk-list" }));
+    wrap.appendChild(more);
+    wrap.appendChild(h("div", { class: "talk-actions" }, [add]));
+    wrap.appendChild(h("div", { class: "talk-form-slot" }));
+    wrap.appendChild(h("p", { class: "talk-status status", "aria-live": "polite" }));
+    add.addEventListener("click", function () { openForm(wrap, target, labelText); });
+    more.addEventListener("click", function () {
+      wrap.setAttribute("data-all", wrap.getAttribute("data-all") === "1" ? "0" : "1");
+      renderTalk(wrap);
     });
-    $(".talk-add", panel).addEventListener("click", function () { openForm(wrap, target, labelText); });
     return wrap;
   }
   function renderTalk(wrap) {
     var target = wrap.getAttribute("data-target"), list = commentsFor(target);
-    $(".talk-n", wrap).textContent = S.ready ? "(" + list.length + ")" : "";
-    $(".talk-sum", wrap).textContent = summary(list);
+    var all = wrap.getAttribute("data-all") === "1";
+    $(".talk-sum", wrap).textContent = S.failed ? "Comments can't be loaded right now." : S.ready ? summaryText(list) : "Loading comments…";
     var ul = $(".talk-list", wrap);
     ul.textContent = "";
-    list.forEach(function (c) {
+    (all ? list : list.slice(0, SHOWN)).forEach(function (c) {
       ul.appendChild(h("li", { class: "cmt" }, [
-        h("p", { class: "cmt-head" }, [h("span", { class: "pos pos-" + c.position, text: POS_NAME[c.position] || "Comment" }), " ", h("span", { class: "cmt-by", text: byline(c) })]),
+        h("p", { class: "cmt-head" }, [h("span", { class: "pos pos-" + (POS_NAME[c.position] ? c.position : "comment"), text: POS_NAME[c.position] || "Comment" }), " ", h("span", { class: "cmt-by", text: byline(c) })]),
         h("p", { class: "cmt-text", text: c.text || "" })
       ]));
     });
-    $(".talk-empty", wrap).hidden = !(S.ready && !list.length);
-    var add = $(".talk-add", wrap), status = $(".talk-status", wrap);
-    var closed = S.failed || !S.config.open;
-    add.hidden = closed || !!$("form", wrap);
-    if (S.failed) status.textContent = "Comments can't be loaded right now. Try again later.";
-    else if (!S.config.open && !status.getAttribute("data-sent")) status.textContent = "Comments are closed right now.";
+    var more = $(".talk-more", wrap);
+    more.hidden = list.length <= SHOWN;
+    more.textContent = all ? "Show only the latest " + SHOWN : "Show all " + list.length + " comments";
+    more.setAttribute("aria-expanded", all ? "true" : "false");
+    var formOpen = !!$("form", wrap), closed = S.failed || !S.config.open;
+    $(".talk-actions", wrap).hidden = formOpen || closed;
+    var status = $(".talk-status", wrap);
+    if (S.ready && !S.config.open && !status.getAttribute("data-sent")) status.textContent = "Comments are closed right now.";
   }
   function openForm(wrap, target, labelText) {
     var slot = $(".talk-form-slot", wrap), prefix = "c-" + target.replace(/[^A-Za-z0-9]/g, "-");
     if ($("form", slot)) { $("textarea", slot).focus(); return; }
+    var status = $(".talk-status", wrap);
+    status.textContent = ""; status.removeAttribute("data-sent");
     var max = S.config.maxCommentChars || 2000;
+    var text = h("textarea", { id: prefix + "-text", name: "text", rows: "4", maxlength: String(max), placeholder: "What do you think of this repair?" });
     var counter = h("p", { class: "hint counter", id: prefix + "-count", text: "0 of " + count(max) + " characters" });
-    var text = h("textarea", { id: prefix + "-text", name: "text", rows: "5", maxlength: String(max), required: true });
-    var posBox = h("fieldset", { class: "seg pos-pick", "data-field": "position" }, [h("legend", { text: "Where do you stand?" })].concat(
+    var posBox = h("fieldset", { class: "seg pos-pick field", "data-field": "position" }, [h("legend", { text: "Your view (optional)" })].concat(
       POSITIONS.reduce(function (acc, p) {
         var id = prefix + "-pos-" + p[0];
         acc.push(h("input", { type: "radio", name: prefix + "-pos", id: id, value: p[0] }));
         acc.push(h("label", { for: id, text: p[1] }));
         return acc;
-      }, []).concat([h("p", { class: "err-msg", id: prefix + "-position-err", hidden: true })])
+      }, [])
     ));
-    posBox.classList.add("field");
     var form = h("form", { class: "talk-form", novalidate: true }, [
       h("p", { class: "form-head", text: "Your comment on " + labelText }),
-      posBox,
       field(prefix, "text", "Your comment", text),
       counter,
+      posBox,
       personFields(prefix),
-      S.config.moderation === "hold" ? h("p", { class: "hint", text: "A moderator reviews comments before they appear." }) : null,
+      S.config.moderation === "hold" ? h("p", { class: "hint", text: "A moderator reads each comment before it appears." }) : null,
       h("div", { class: "row" }, [
         h("button", { type: "submit", class: "btn", text: "Post comment" }),
         h("button", { type: "button", class: "btn quiet", text: "Cancel", on: { click: function () { form.remove(); renderTalk(wrap); $(".talk-add", wrap).focus(); } } })
@@ -2154,25 +2086,23 @@ if (typeof module !== "undefined") module.exports = Engine;
     text.addEventListener("input", function () { counter.textContent = count(text.value.length) + " of " + count(max) + " characters"; });
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var status = $(".talk-status", wrap), btn = $('button[type="submit"]', form), errors = {};
-      var pos = $('input[name="' + prefix + '-pos"]:checked', form);
-      if (!pos) errors.position = "Choose where you stand.";
+      var btn = $('button[type="submit"]', form), errors = {};
       if (!text.value.trim()) errors.text = "Write your comment.";
       var p = readPerson(form, prefix);
       checkPerson(p, errors);
       showErrors(form, errors);
       if (Object.keys(errors).length) { status.textContent = errors[Object.keys(errors)[0]]; return; }
+      var pos = $('input[name="' + prefix + '-pos"]:checked', form);
       btn.disabled = true;
       status.textContent = "Sending…";
-      var payload = { kind: "comment", target: target, position: pos.value, text: text.value };
+      var payload = { kind: "comment", target: target, position: pos ? pos.value : "comment", text: text.value };
       Object.keys(p).forEach(function (k) { payload[k] = p[k]; });
       call("/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }, 15000).then(function (d) {
-        if (d.item) { addItem(d.item); }
+        if (d.item) addItem(d.item);
         form.remove();
         status.setAttribute("data-sent", "1");
-        status.textContent = thanks(d.status, "comment");
+        status.textContent = d.status === "live" ? "Thank you. Your comment is posted." : "Thank you. A moderator will read your comment before it appears.";
         renderTalk(wrap);
-        if (d.item) renderCounts();
       }, function (err) {
         btn.disabled = false;
         if (err && err.fields) showErrors(form, err.fields);
@@ -2180,496 +2110,27 @@ if (typeof module !== "undefined") module.exports = Engine;
       });
     });
     slot.appendChild(form);
-    $(".talk-add", wrap).hidden = true;
-    var firstPos = $('input[type="radio"]', posBox);
-    if (firstPos) firstPos.focus();
-  }
-  function renderCounts() { $$(".talk").forEach(renderTalk); }
-
-  /* ---------- reading and writing bylaw text ---------- */
-  var TODAY = Engine.compose(BASE, []).blocks;
-  var BY_UID = {}; TODAY.forEach(function (b) { BY_UID[b.uid] = b; });
-  var CFG = {
-    CHECKS: CHECKS, NAME_RULES: NAME_RULES, COMMITTEE_RULES: COMMITTEE_RULES, CITATION_RULES: CITATION_RULES,
-    LEFTOVER_RULES: LEFTOVER_RULES, THRESHOLD_RE: THRESHOLD_RE, INTERNAL: INTERNAL,
-    label: function () { return "This proposal"; }, title: function (c) { return c.title || ""; }
-  };
-  var CHECK_NAME = {}; CHECKS.forEach(function (c, i) { CHECK_NAME[c.id] = "Standard " + (i + 1) + ", " + c.name; });
-  var todayChecks = null;
-  function pkey(p) { return p.key || (p.check + "|" + p.uid + "|" + p.m); }
-  function flat(ck) { return CHECKS.reduce(function (a, c) { return a.concat(ck[c.id] || []); }, []); }
-
-  function nodeLine(n) { return n.k === "i" ? (n.l ? n.l + " " : "") + n.t : n.t; }
-  function nodesToText(nodes) { return (nodes || []).map(nodeLine).join("\n"); }
-  var ITEM_RE = /^((?:[A-Za-z]|\d{1,2})\.|–)\s+(\S.*)$/;
-  function textToNodes(text, orig) {
-    var lines = String(text || "").replace(/\r\n?/g, "\n").split("\n").map(function (l) { return l.replace(/\s+/g, " ").trim(); }).filter(Boolean);
-    return lines.map(function (line, i) {
-      var o = orig && orig[i];
-      if (o && norm(nodeLine(o)) === line) return o.l ? { k: o.k, l: o.l, t: o.t } : { k: o.k, t: o.t };
-      var m = ITEM_RE.exec(line);
-      return m ? { k: "i", l: m[1], t: m[2] } : { k: "p", t: line };
-    });
-  }
-  function kindFor(id) {
-    if (id.indexOf("SR ") === 0) return id.indexOf(".") < 0 ? "article" : "sub";
-    return id.split(".").length === 2 ? "section" : "sub";
-  }
-  /* "Add after Article 4" means at the end of Article 4, after its last section. */
-  function anchorFor(uid) {
-    var b = BY_UID[uid];
-    if (!b || b.kind !== "article") return uid;
-    var prefix = b.id + ".", last = uid;
-    TODAY.forEach(function (x) { if (x.id.indexOf(prefix) === 0) last = x.uid; });
-    return last;
-  }
-  function stepId(id) {
-    var sr = id.indexOf("SR ") === 0, parts = (sr ? id.slice(3) : id).split(".");
-    if (parts.length < 2 || !/^\d+$/.test(parts[parts.length - 1])) return "";
-    parts[parts.length - 1] = String(+parts[parts.length - 1] + 1);
-    return (sr ? "SR " : "") + parts.join(".");
-  }
-  function memberChange(p) {
-    var ch = { id: "MEMBER", g: "member", title: p.title || "", ops: [] };
-    if (p.mode === "change") ch.ops.push({ t: "set", b: p.section, nodes: p.nodes });
-    else ch.ops.push({ t: "ins", after: anchorFor(p.section), block: { id: p.newId, label: p.newId.indexOf("SR ") === 0 ? p.newId.slice(3) + "." : p.newId + ".", title: p.newTitle || null, kind: kindFor(p.newId), nodes: p.nodes } });
-    return ch;
-  }
-  function analyze(p) {
-    if (!BY_UID[p.section]) return { error: "This refers to a section that is no longer in the bylaws." };
-    if (!p.nodes.length) return { error: "Write the wording to see the result." };
-    if (p.mode === "add" && !NEW_ID_RE.test(p.newId || "")) return { error: "Give the new section a number, like 4.8." };
-    if (p.mode === "add" && BY_UID[p.newId]) return { error: "There is already a section " + p.newId + ". Choose another number." };
-    var ch = memberChange(p);
-    var comp = Engine.compose(BASE, [ch]);
-    if (comp.errors.length) return { error: "That section couldn't be found." };
-    if (!todayChecks) todayChecks = Engine.runChecks(TODAY, [], CFG);
-    var ck = Engine.runChecks(comp.blocks, [ch], CFG);
-    var before = {}, after = {};
-    flat(todayChecks).forEach(function (x) { before[pkey(x)] = 1; });
-    flat(ck).forEach(function (x) { after[pkey(x)] = 1; });
-    var added = flat(ck).filter(function (x) { return !before[pkey(x)]; });
-    var fixed = flat(todayChecks).filter(function (x) { return !after[pkey(x)]; });
-    var nb = null;
-    comp.blocks.forEach(function (b) { if (p.mode === "add" ? b.origin === "MEMBER" : b.uid === p.section) nb = b; });
-    var same = p.mode === "change" && nodesToText(BY_UID[p.section].nodes) === nodesToText(p.nodes);
-    return { old: p.mode === "change" ? BY_UID[p.section] : null, block: nb, added: added, fixed: fixed, same: same, motion: wording(p) };
-  }
-  var NEW_ID_RE = /^(\d{1,2}(\.\d{1,2}){1,3}|SR [A-K](\.\d{1,2}){0,2}(\.[a-z])?)$/;
-
-  /* The formal wording: short "strike ... and insert ..." instructions when they can be made exact,
-     otherwise the whole new text. Every short instruction is replayed against today's text to prove it. */
-  function q(s) { return "“" + s + "”"; }
-  function toks(s) { return s.match(/\S+\s*/g) || []; }
-  function norm(s) { return s.replace(/\s+/g, " ").trim(); }
-  function occurrences(hay, needle) {
-    if (!needle) return 0;
-    var n = 0, i = hay.indexOf(needle);
-    while (i >= 0) { n++; i = hay.indexOf(needle, i + 1); }
-    return n;
-  }
-  var MAX_CONTEXT = 12; // words of surrounding text a quoted phrase may borrow to be unique
-  function nodeEdits(a, b, blockText) {
-    var seq = [];
-    Engine.diffWords(a, b).forEach(function (part) { toks(part.s).forEach(function (tk) { seq.push({ t: part.t, s: tk }); }); });
-    var edits = [], i = 0;
-    while (i < seq.length) {
-      if (seq[i].t === "eq") { i++; continue; }
-      var j = i, del = [], ins = [], k;
-      while (j < seq.length && seq[j].t !== "eq") { (seq[j].t === "del" ? del : ins).push(seq[j].s); j++; }
-      var left = [], right = [];
-      for (k = i - 1; k >= 0 && seq[k].t === "eq"; k--) left.unshift(seq[k].s);
-      for (k = j; k < seq.length && seq[k].t === "eq"; k++) right.push(seq[k].s);
-      var e = hunkEdit(del.join(""), ins.join(""), left, right, blockText);
-      if (!e) return null;
-      edits.push(e);
-      i = j;
-    }
-    return edits;
-  }
-  /* One run of changed words. Quote the fewest neighboring words that make the phrase unique in the section. */
-  function hunkEdit(D, I, left, right, blockText) {
-    var L, R, l, r, phrase;
-    function lw(n) { return left.slice(left.length - n).join(""); }
-    function rw(n) { return right.slice(0, n).join(""); }
-    if (norm(D)) {
-      for (var size = 0; size <= 2 * MAX_CONTEXT; size++) {
-        // try every split of `size` borrowed words between the right and left sides, right side first
-        for (R = Math.min(size, right.length); R >= 0; R--) {
-          L = size - R;
-          if (L > left.length || L > MAX_CONTEXT || R > MAX_CONTEXT) continue;
-          l = lw(L); r = rw(R);
-          phrase = norm(l + D + r);
-          if (occurrences(blockText, phrase) === 1) return { strike: phrase, insert: norm(l + I + r) };
-        }
-      }
-      return null;
-    }
-    if (!norm(I)) return null;
-    for (L = 1; L <= Math.min(left.length, MAX_CONTEXT); L++) {
-      phrase = norm(lw(L));
-      if (phrase && occurrences(blockText, phrase) === 1) return { after: phrase, insert: norm(I) };
-    }
-    for (R = 1; R <= Math.min(right.length, MAX_CONTEXT); R++) {
-      phrase = norm(rw(R));
-      if (phrase && occurrences(blockText, phrase) === 1) return { before: phrase, insert: norm(I) };
-    }
-    return null;
-  }
-  function replay(text, e) {
-    if (e.strike != null) { var i = text.indexOf(e.strike); if (i < 0) return null; return text.slice(0, i) + e.insert + text.slice(i + e.strike.length); }
-    if (e.after != null) { var a = text.indexOf(e.after); if (a < 0) return null; return text.slice(0, a + e.after.length) + " " + e.insert + text.slice(a + e.after.length); }
-    var bf = text.indexOf(e.before); if (bf < 0) return null; return text.slice(0, bf) + e.insert + " " + text.slice(bf);
-  }
-  function shortEdits(oldNodes, newNodes) {
-    if (oldNodes.length !== newNodes.length) return null;
-    var blockText = oldNodes.map(function (n) { return norm(n.t); }).join("\n");
-    var all = [];
-    for (var i = 0; i < oldNodes.length; i++) {
-      var o = oldNodes[i], n = newNodes[i];
-      if (o.k !== n.k || (o.l || "") !== (n.l || "")) return null;
-      if (norm(o.t) === norm(n.t)) continue;
-      var e = nodeEdits(o.t, n.t, blockText);
-      if (!e || !e.length) return null;
-      var t = norm(o.t);
-      for (var k = 0; k < e.length; k++) { t = replay(t, e[k]); if (t == null) return null; t = norm(t); }
-      if (t !== norm(n.t)) return null;
-      all = all.concat(e);
-      if (all.length > 6) return null;
-    }
-    // The quoted words must still be unique after the earlier edits in the same section.
-    var whole = norm(blockText);
-    for (var m = 0; m < all.length; m++) {
-      var key = all[m].strike != null ? all[m].strike : all[m].after != null ? all[m].after : all[m].before;
-      if (occurrences(whole, key) !== 1) return null;
-      whole = norm(replay(whole, all[m]) || "");
-      if (!whole) return null;
-    }
-    return all;
-  }
-  function wording(p) {
-    var name = Engine.refName(p.section), lines = [];
-    if (p.mode === "add") {
-      lines.push("Insert a new " + Engine.refName(p.newId) + (p.newTitle ? ", titled " + q(p.newTitle) + "," : "") + " after " + Engine.refName(BY_UID[anchorFor(p.section)].id) + ", to read:");
-      p.nodes.forEach(function (n) { lines.push("    " + nodeLine(n)); });
-      return lines.join("\n");
-    }
-    var e = shortEdits(BY_UID[p.section].nodes, p.nodes);
-    if (e && e.length) {
-      return e.map(function (x) {
-        if (x.strike != null) return "In " + name + ", strike " + q(x.strike) + (x.insert ? " and insert " + q(x.insert) : "");
-        if (x.after != null) return "In " + name + ", after " + q(x.after) + ", insert " + q(x.insert);
-        return "In " + name + ", before " + q(x.before) + ", insert " + q(x.insert);
-      }).join("\n");
-    }
-    lines.push("Replace the text of " + name + " with the following:");
-    p.nodes.forEach(function (n) { lines.push("    " + nodeLine(n)); });
-    return lines.join("\n");
-  }
-  function fullText(p, person, motion) {
-    var sr = (p.mode === "add" ? p.newId : p.section).indexOf("SR ") === 0;
-    var who = [person.name, ROLE_NAME[person.role], person.precinct ? "Precinct " + person.precinct : ""].filter(Boolean).join(", ");
-    return [
-      "PROPOSED AMENDMENT TO THE PCRP " + (sr ? "STANDING RULES" : "BYLAWS"),
-      p.title ? "Title: " + p.title : "",
-      who ? "Proposed by: " + who : "",
-      "",
-      motion,
-      "",
-      p.why ? "Why: " + p.why : "",
-      "",
-      sr ? "Standing rule amendments are adopted by a majority vote with a quorum present (Standing Rule K)."
-         : "Bylaw amendments must be submitted in writing to the PCRP Chair at least 14 days before the meeting (Bylaw 10.1), go to members with the meeting notice (Bylaw 10.2), and need a two-thirds vote (Article 10)."
-    ].filter(function (x, i, a) { return x !== "" || (a[i - 1] !== "" && i > 0); }).join("\n");
-  }
-
-  /* ---------- showing a change ---------- */
-  function partsInto(el, parts) {
-    parts.forEach(function (pt) {
-      if (pt.t === "eq") el.appendChild(document.createTextNode(pt.s));
-      else el.appendChild(h(pt.t === "ins" ? "ins" : "del", { text: pt.s }));
-    });
-  }
-  function redlineInto(box, an) {
-    box.textContent = "";
-    if (!an.block) return;
-    var title = an.block.title ? " · " + an.block.title : "";
-    box.appendChild(h("p", { class: "rl-head", text: (an.old ? "" : "New ") + Engine.refName(an.block.id) + title }));
-    var text = h("div", { class: "rl-text" });
-    var rows = Engine.blockDiff(an.old, an.block), list = null;
-    rows.forEach(function (r) {
-      if (r.node.k === "i") {
-        if (!list) { list = h("ul", { class: "items" }); text.appendChild(list); }
-        var span = h("span");
-        partsInto(span, r.parts);
-        list.appendChild(h("li", {}, [h("span", { class: "lbl", text: r.node.l || "" }), span]));
-      } else {
-        list = null;
-        var para = h("p", { class: r.node.k === "h" ? "sub-h" : null });
-        partsInto(para, r.parts);
-        text.appendChild(para);
-      }
-    });
-    box.appendChild(text);
-  }
-  function checksInto(box, an) {
-    box.textContent = "";
-    if (an.same) { box.appendChild(h("p", { text: "No change yet. Edit the wording above." })); return; }
-    if (!an.added.length) box.appendChild(h("p", { class: "allgood" }, [h("span", { "aria-hidden": "true", text: "✓ " }), "Adds no new problems."]));
-    else {
-      box.appendChild(h("p", { class: "bad-line", text: "Adds " + plural(an.added.length, "problem", "problems") + ":" }));
-      box.appendChild(h("ul", { class: "plist" }, an.added.map(function (x) { return h("li", {}, [h("strong", { text: CHECK_NAME[x.check] + ": " }), x.m]); })));
-    }
-    if (an.fixed.length) {
-      box.appendChild(h("p", { class: "good-line", text: "Fixes " + plural(an.fixed.length, "problem", "problems") + " in today's bylaws:" }));
-      box.appendChild(h("ul", { class: "plist" }, an.fixed.map(function (x) { return h("li", {}, [h("strong", { text: CHECK_NAME[x.check] + ": " }), x.m]); })));
-    }
-  }
-  function verdict(an) {
-    if (an.error) return { cls: "no", text: "Can't be checked" };
-    if (an.same) return { cls: "no", text: "No change" };
-    return an.added.length ? { cls: "no", text: "Adds " + plural(an.added.length, "problem", "problems") } : { cls: "ok", text: "Adds no new problems" };
-  }
-
-  /* ---------- the proposal builder ---------- */
-  var B = null;
-  function builderInit() {
-    var root = $("#builder");
-    if (!root) return;
-    var draft = getJSON("bw-draft") || {};
-    B = { root: root, texts: draft.texts || {}, mode: draft.mode === "add" ? "add" : "change", section: draft.section || "", lastSuggest: "" };
-    var sel = $("#pb-sec");
-    function options(forAdd) {
-      sel.textContent = "";
-      sel.appendChild(h("option", { value: "", text: "Choose a section…" }));
-      var group = null;
-      TODAY.forEach(function (b) {
-        var sr = b.id.indexOf("SR ") === 0;
-        if (b.kind === "article") {
-          var g = (sr ? "Standing Rule " + b.id.slice(3) : "Article " + b.id) + (b.title ? ". " + b.title : "");
-          group = h("optgroup", { label: g });
-          sel.appendChild(group);
-          if (forAdd || b.nodes.length) group.appendChild(h("option", { value: b.uid, text: g }));
-          return;
-        }
-        if (!forAdd && !b.nodes.length) return;
-        (group || sel).appendChild(h("option", { value: b.uid, text: (sr ? b.id.slice(3) : b.id) + (b.title ? " " + b.title : "") }));
-      });
-    }
-    function setMode(m) {
-      B.mode = m;
-      $("#pb-mode-" + m).checked = true;
-      options(m === "add");
-      $("#pb-sec-label").textContent = m === "add" ? "Add it after" : "Section to change";
-      $(".pb-add", root).hidden = m !== "add";
-      sel.value = B.section && BY_UID[B.section] ? B.section : "";
-      if (sel.value !== B.section) B.section = sel.value;
-      loadText();
-    }
-    function suggestId(anchor) {
-      var b = BY_UID[anchor];
-      if (!b) return "";
-      var id = b.id, sr = id.indexOf("SR ") === 0, body = sr ? id.slice(3) : id;
-      var parts = body.split("."), cand;
-      if (parts.length === 1) parts.push("0");
-      for (var n = 0; n < 99; n++) {
-        var last = parts[parts.length - 1];
-        if (!/^\d+$/.test(last)) return "";
-        parts[parts.length - 1] = String(+last + 1);
-        cand = (sr ? "SR " : "") + parts.join(".");
-        if (!BY_UID[cand]) return NEW_ID_RE.test(cand) ? cand : "";
-      }
-      return "";
-    }
-    function loadText() {
-      var ta = $("#pb-text"), key = B.mode + ":" + B.section;
-      if (B.mode === "change") ta.value = B.texts[key] != null ? B.texts[key] : (BY_UID[B.section] ? nodesToText(BY_UID[B.section].nodes) : "");
-      else {
-        ta.value = B.texts[key] || "";
-        var nid = $("#pb-newid"), sug = suggestId(B.section), hint = $("#pb-newid-hint");
-        if (!nid.value || nid.value === B.lastSuggest) nid.value = sug;
-        B.lastSuggest = sug;
-        var b = BY_UID[B.section], step = b ? stepId(b.id) : "";
-        if (hint) {
-          hint.hidden = !(step && BY_UID[step] && sug);
-          hint.textContent = hint.hidden ? "" : Engine.refName(step) + " already exists, so the next free number is " + sug +
-            ". To keep the numbers in order, add the new section after the last section in this group.";
-        }
-      }
-      update();
-    }
-    sel.addEventListener("change", function () { B.section = sel.value; loadText(); });
-    $$('input[name="pb-mode"]', root).forEach(function (r) { r.addEventListener("change", function () { if (r.checked) setMode(r.value); }); });
-    var timer = null;
-    function later() { window.clearTimeout(timer); timer = window.setTimeout(function () { update(); saveDraft(); }, 250); }
-    ["#pb-text", "#pb-newid", "#pb-newtitle", "#pb-title", "#pb-why"].forEach(function (s) { $(s).addEventListener("input", later); });
-    $("#pb-newid").value = draft.newId || "";
-    $("#pb-newtitle").value = draft.newTitle || "";
-    $("#pb-title").value = draft.title || "";
-    $("#pb-why").value = draft.why || "";
-    $("#pb-person").appendChild(personFields("pb"));
-    $("#pb-copy").addEventListener("click", copyWording);
-    $("#pb-send").addEventListener("click", sendProposal);
-    $("#pb-reset").addEventListener("click", function () {
-      B.texts = {}; $("#pb-title").value = ""; $("#pb-why").value = ""; $("#pb-newid").value = ""; $("#pb-newtitle").value = "";
-      delItem("bw-draft"); loadText(); $("#pb-status").textContent = "Started over.";
-    });
-    setMode(B.mode);
-  }
-  function current() {
-    var ta = $("#pb-text"), key = B.mode + ":" + B.section;
-    if (B.section) B.texts[key] = ta.value;
-    var orig = B.mode === "change" && BY_UID[B.section] ? BY_UID[B.section].nodes : null;
-    return {
-      mode: B.mode, section: B.section,
-      newId: norm($("#pb-newid").value), newTitle: norm($("#pb-newtitle").value),
-      nodes: textToNodes(ta.value, orig),
-      title: norm($("#pb-title").value), why: $("#pb-why").value.trim()
-    };
-  }
-  function saveDraft() {
-    var p = current();
-    setItem("bw-draft", JSON.stringify({ mode: p.mode, section: p.section, newId: p.newId, newTitle: p.newTitle, title: p.title, why: p.why, texts: B.texts }));
-  }
-  var lastMotion = "";
-  function update() {
-    var out = $("#pb-out"), p = current();
-    if (!p.section) { out.hidden = true; return; }
-    out.hidden = false;
-    var an = analyze(p);
-    var red = $("#pb-redline"), chk = $("#pb-checks"), mot = $("#pb-motion");
-    if (an.error) { red.textContent = ""; chk.textContent = ""; chk.appendChild(h("p", { text: an.error })); mot.textContent = ""; lastMotion = ""; $("#pb-copy").disabled = true; return; }
-    redlineInto(red, an);
-    checksInto(chk, an);
-    mot.textContent = an.same ? "" : an.motion;
-    lastMotion = an.same ? "" : an.motion;
-    $("#pb-copy").disabled = !lastMotion;
-  }
-  function copyWording() {
-    var st = $("#pb-copy-status"), p = current();
-    if (!lastMotion) { st.textContent = "Edit the wording first."; return; }
-    var txt = fullText(p, { name: $("#pb-name").value.trim(), role: $("#pb-role").value, precinct: $("#pb-precinct").value.trim() }, lastMotion);
-    function fallback() {
-      var ta = h("textarea", { class: "sr", "aria-hidden": "true" });
-      ta.value = txt; document.body.appendChild(ta); ta.select();
-      var ok = false;
-      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
-      ta.remove();
-      st.textContent = ok ? "Copied. Paste it into an email or a letter." : "Your browser blocked copying. Select the wording above and copy it.";
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { st.textContent = "Copied. Paste it into an email or a letter."; }, fallback);
-    else fallback();
-  }
-  function sendProposal() {
-    var root = B.root, status = $("#pb-status"), btn = $("#pb-send"), errors = {};
-    var p = current(), person = readPerson(root, "pb");
-    if (!p.section) errors.section = "Choose a section.";
-    var an = p.section ? analyze(p) : null;
-    if (an && an.error) errors.text = an.error;
-    else if (an && an.same) errors.text = "Change the wording first.";
-    if (p.mode === "add" && !NEW_ID_RE.test(p.newId)) errors.newId = "Give the new section a number, like 4.8.";
-    if (p.title.length < 4) errors.title = "Give your proposal a short title.";
-    if (!p.why) errors.why = "Say in a sentence or two why it's needed.";
-    checkPerson(person, errors);
-    showErrors(root, errors);
-    if (Object.keys(errors).length) { status.textContent = errors[Object.keys(errors)[0]]; return; }
-    if (S.failed || !S.config.open || !S.config.proposalsOpen) { status.textContent = "Posting proposals isn't available right now. You can still copy the wording."; return; }
-    btn.disabled = true;
-    status.textContent = "Sending…";
-    var payload = { kind: "proposal", title: p.title, why: p.why, mode: p.mode, section: p.section, nodes: p.nodes };
-    if (p.mode === "add") { payload.newId = p.newId; payload.newTitle = p.newTitle; }
-    Object.keys(person).forEach(function (k) { payload[k] = person[k]; });
-    call("/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }, 15000).then(function (d) {
-      btn.disabled = false;
-      status.textContent = thanks(d.status, "proposal");
-      if (d.item) { addItem(d.item); renderMembers(); }
-    }, function (err) {
-      btn.disabled = false;
-      if (err && err.fields) {
-        var f = {};
-        Object.keys(err.fields).forEach(function (k) { f[k === "nodes" ? "text" : k] = err.fields[k]; });
-        showErrors(root, f);
-      }
-      status.textContent = failText(err);
-    });
-  }
-  function builderState() {
-    if (!B) return;
-    var off = S.failed || !S.config.open || !S.config.proposalsOpen;
-    $("#pb-send").disabled = off && S.ready;
-    var note = $("#pb-closed");
-    if (note) {
-      note.hidden = !(S.failed || (S.ready && off));
-      note.textContent = S.failed ? "Posting isn't available right now. You can still write your amendment and copy the wording."
-        : "New proposals are closed right now. You can still write your amendment and copy the wording.";
-    }
-    var mod = $("#pb-moderated");
-    if (mod) mod.hidden = !(S.ready && S.config.moderation === "hold");
-  }
-
-  /* ---------- members' proposals ---------- */
-  function renderMembers() {
-    var box = $("#member-list"), sum = $("#members-sum");
-    if (!box) return;
-    var list = S.items.filter(function (x) { return x.kind === "proposal"; }).slice().sort(function (a, b) { return a.created < b.created ? 1 : -1; });
-    var open = {};
-    $$("details.mp-exact[open]", box).forEach(function (d) { open[d.getAttribute("data-id")] = 1; });
-    box.textContent = "";
-    if (S.failed) { sum.textContent = "Proposals can't be loaded right now."; return; }
-    if (!S.ready) { sum.textContent = "Loading…"; return; }
-    sum.textContent = list.length ? plural(list.length, "proposal", "proposals") + " so far." : "None yet. Yours could be the first.";
-    list.forEach(function (x) {
-      var p = { mode: x.mode, section: x.section, newId: x.newId || "", newTitle: x.newTitle || "", nodes: Array.isArray(x.nodes) ? x.nodes : [], title: x.title, why: x.why };
-      var an = analyze(p), v = verdict(an);
-      var where = p.mode === "add" ? "New " + Engine.refName(p.newId || "?") : Engine.refName(p.section || "?");
-      // Its own class: the page's main script redraws every "details.exact" as a repair.
-      var det = h("details", { class: "mp-exact", "data-id": x.id, open: open[x.id] ? true : null }, [h("summary", { text: "See the change and the formal wording" }), h("div", { class: "redline" })]);
-      det.addEventListener("toggle", function () {
-        if (!det.open) return;
-        var r = $(".redline", det);
-        r.textContent = "";
-        if (an.error) { r.appendChild(h("p", { text: an.error })); return; }
-        var rl = h("div"), ck = h("div");
-        redlineInto(rl, an); checksInto(ck, an);
-        r.appendChild(rl);
-        r.appendChild(h("p", { class: "rl-head", text: "What the seven standards say" }));
-        r.appendChild(ck);
-        r.appendChild(h("p", { class: "rl-head", text: "The formal wording" }));
-        r.appendChild(h("pre", { class: "pb-motion", text: an.motion || "" }));
-      });
-      var card = h("article", { class: "card mp", id: "mp-" + x.id }, [
-        h("div", { class: "card-head" }, [h("span", { class: "rnum", text: "Member proposal" }), h("span", { class: "where", text: where }), h("span", { class: "chip " + v.cls, text: v.text })]),
-        h("h4", { class: "card-title", text: x.title || "Untitled proposal" }),
-        h("p", { class: "mp-by", text: "Proposed by " + byline(x) }),
-        h("dl", { class: "pairs" }, [h("div", { class: "pair" }, [h("dt", { text: "Why" }), h("dd", { class: "keep-lines", text: x.why || "" })])]),
-        det,
-        talkBlock("p:" + x.id, "the proposal “" + (x.title || "Untitled") + "”")
-      ]);
-      box.appendChild(card);
-      if (open[x.id]) det.dispatchEvent(new Event("toggle"));
-    });
-    $$(".talk", box).forEach(renderTalk);
+    renderTalk(wrap);
+    text.focus();
   }
 
   /* ---------- start ---------- */
   function addTalkToCards() {
-    Object.keys(REPAIR_IDS).forEach(function (id) {
-      var card = document.getElementById("r-" + id);
+    var n = 0;
+    CHANGES.forEach(function (c) {
+      if (c.g === "pkg") return;
+      n++;
+      var card = document.getElementById("r-" + c.id);
       if (!card || $(".talk", card)) return;
-      var a = PRE.amend && PRE.amend[id], label = "Repair " + (Object.keys(REPAIR_IDS).indexOf(id) + 1);
+      var a = PRE.amend && PRE.amend[c.id], label = "Repair " + n;
       if (a && a.a) label += " (Amendment " + a.a + ")";
       else if (a && a.s) label += " (Standing Rule amendment " + a.s + ")";
-      card.appendChild(talkBlock("r:" + id, label));
+      card.appendChild(talkBlock("r:" + c.id, label));
     });
   }
-  function renderAll() {
-    renderCounts();
-    renderMembers();
-    builderState();
-  }
+  function renderAll() { $$(".talk").forEach(renderTalk); }
   try {
     addTalkToCards();
-    builderInit();
     renderAll();
     load();
   } catch (e) {

@@ -1,9 +1,8 @@
 # PCRP Bylaws Workbench: website edition
 
-This is the Bylaws Workbench with three additions:
+This is the Bylaws Workbench with two additions:
 
-- **Comments on every repair.** Each comment carries the commenter's name, role, precinct and position (support, oppose, support with changes, or question).
-- **An amendment builder.** It marks up the change against today's text, checks it against the seven standards, and writes the Article 10 wording. Members can post what they build.
+- **Comments on every repair.** Each repair card has an **Add a comment** button and shows its latest comments. A comment carries the commenter's name, role and precinct, and optionally where they stand (support, oppose, support with changes, or question). Returning commenters see their details on one line instead of retyping them.
 - **Rate limits you set yourself.** Limits apply per person and to everyone together. You change them on the admin page, with no redeploy.
 
 ## What's in the folder
@@ -25,7 +24,7 @@ This is the Bylaws Workbench with three additions:
 2. **Set environment variables** in the project's settings:
    - `ADMIN_KEY` (required): a long random password, at least 12 characters. It opens the admin page. Keep it secret.
    - `IP_SALT` (recommended): any long random string. It scrambles IP addresses before they're stored.
-   - Optional starting values, all changeable later on the admin page: `RL_IP_PER_HOUR`, `RL_IP_PER_DAY`, `RL_ALL_PER_HOUR`, `RL_ALL_PER_DAY`, `MODERATION` (`hold` or `publish`), `MAX_COMMENT_CHARS`, `MAX_PROPOSAL_CHARS`.
+   - Optional starting values, all changeable later on the admin page: `RL_IP_PER_HOUR`, `RL_IP_PER_DAY`, `RL_ALL_PER_HOUR`, `RL_ALL_PER_DAY`, `MODERATION` (`hold` or `publish`), `MAX_COMMENT_CHARS`.
 3. **Redeploy** so the functions pick up the variables. Then open `https://your-site.netlify.app/admin/` and sign in with `ADMIN_KEY`.
 4. **Post a test comment** on the public page, approve it on the admin page, and check that it appears within about a minute.
 
@@ -42,7 +41,6 @@ Every limit can be changed on the admin page under **Settings**. Changes take ef
 | Everyone together, per hour | 100 | Posts accepted from all connections combined in any 60 minutes |
 | Everyone together, per day | 500 | ... in any 24 hours |
 | Longest comment | 2,000 characters | |
-| Longest proposal wording | 8,000 characters | |
 
 Things to know:
 
@@ -56,7 +54,7 @@ Things to know:
 
 - **Wait for my approval** (the default): nothing appears until you approve it on the admin page.
 - **Show right away**: posts appear at once. You can still hide or delete anything.
-- **Accept new comments / proposals: No** stops new posts and leaves existing ones up.
+- **Accept new comments: No** stops new comments and leaves existing ones up.
 - **Hide** takes a post off the public page and keeps it. **Delete** removes it for good.
 - The public list updates within about a minute of any change, because Netlify caches it for up to a minute.
 
@@ -70,7 +68,7 @@ Things to know:
 
 ## Costs on Netlify's free plan
 
-The free plan gives 300 credits a month, and each production deploy costs 15. Posting comments and proposals doesn't deploy anything, so it doesn't use deploy credits. The functions and storage use very little.
+The free plan gives 300 credits a month, and each production deploy costs 15. Posting comments doesn't deploy anything, so it doesn't use deploy credits. The functions and storage use very little.
 
 Deploys happen only when you change the page itself. If credits ever run out, Netlify pauses the site until the next month, so don't deploy dozens of small edits. Deploy Previews, the preview links Netlify builds for pull requests, are free.
 

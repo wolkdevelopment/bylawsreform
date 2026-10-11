@@ -1,11 +1,11 @@
 /* Shared logic for the bylaws site's three functions: settings, validation, rate limits and storage.
+   The site takes one kind of post: a comment on one of the repairs.
    Storage is Netlify Blobs. Each function passes its stores in, so tests and the local dev server
    can use an in-memory copy (dev/memory-blobs.mjs). Nothing here touches the network itself. */
 import crypto from "node:crypto";
-import { REPAIR_IDS, BLOCK_UIDS } from "./ids.mjs";
+import { REPAIR_IDS } from "./ids.mjs";
 
 const REPAIRS = new Set(REPAIR_IDS);
-const BLOCKS = new Set(BLOCK_UIDS);
 
 export const ROLES = {
   "pco-elected": "Elected PCO",
@@ -17,29 +17,28 @@ export const ROLES = {
   "other": "Other or guest"
 };
 const NEEDS_PRECINCT = new Set(["pco-elected", "pco-appointed", "captain"]);
-export const POSITIONS = { support: "Support", oppose: "Oppose", changes: "Support with changes", question: "Question" };
+// "comment" is used when someone doesn't pick a side.
+export const POSITIONS = { support: "Support", oppose: "Oppose", changes: "Support with changes", question: "Question", comment: "Comment" };
 
 /* ---------- settings ---------- */
 // Every limit can be changed from the admin page at any time (saved in Blobs, no redeploy).
 // Environment variables only change the starting values.
 export const DEFAULTS = Object.freeze({
-  open: true,               // accept new comments and proposals at all
-  proposalsOpen: true,      // accept new member proposals
+  open: true,               // accept new comments
   moderation: "hold",       // "hold": nothing shows until approved; "publish": shows at once
   ipPerHour: 6,             // accepted submissions per person (IP address) per rolling hour
   ipPerDay: 20,             // ... per rolling 24 hours
   allPerHour: 100,          // accepted submissions from everyone together per rolling hour
   allPerDay: 500,           // ... per rolling 24 hours
-  maxCommentChars: 2000,
-  maxProposalChars: 8000
+  maxCommentChars: 2000
 });
 const RANGES = {
   ipPerHour: [1, 1000], ipPerDay: [1, 10000], allPerHour: [1, 100000], allPerDay: [1, 1000000],
-  maxCommentChars: [100, 20000], maxProposalChars: [500, 50000]
+  maxCommentChars: [100, 20000]
 };
 const ENV_KEYS = {
   ipPerHour: "RL_IP_PER_HOUR", ipPerDay: "RL_IP_PER_DAY", allPerHour: "RL_ALL_PER_HOUR", allPerDay: "RL_ALL_PER_DAY",
-  maxCommentChars: "MAX_COMMENT_CHARS", maxProposalChars: "MAX_PROPOSAL_CHARS"
+  maxCommentChars: "MAX_COMMENT_CHARS"
 };
 const HOUR = 3600e3, DAY = 24 * HOUR;
 const MAX_BODY = 64 * 1024;
@@ -47,7 +46,7 @@ const MAX_BODY = 64 * 1024;
 export function cleanConfig(input, base = DEFAULTS) {
   const out = { ...base }, errors = {};
   if (!input || typeof input !== "object") return { config: out, errors };
-  for (const k of ["open", "proposalsOpen"]) {
+  for (const k of ["open"]) {
     if (!(k in input)) continue;
     if (input[k] === true || input[k] === "true") out[k] = true;
     else if (input[k] === false || input[k] === "false") out[k] = false;
@@ -227,12 +226,13 @@ function validatePerson(b, errors) {
 
 function validateComment(b, cfg, errors) {
   const target = typeof b.target === "string" ? b.target : "";
-  let ok = false;
-  if (/^r:[A-Za-z0-9]{1,8}$/.test(target)) ok = REPAIRS.has(target.slice(2));
-  else if (/^p:[a-z0-9-]{8,40}$/.test(target)) ok = true; // checked against stored proposals below
-  if (!ok) errors.target = "That item isn't open for comments.";
-  const position = typeof b.position === "string" && Object.prototype.hasOwnProperty.call(POSITIONS, b.position) ? b.position : null;
-  if (!position) errors.position = "Choose support, oppose, support with changes, or question.";
+  if (!/^r:[A-Za-z0-9]{1,8}$/.test(target) || !REPAIRS.has(target.slice(2))) errors.target = "That item isn't open for comments.";
+  // Taking a side is optional.
+  let position = b.position == null || b.position === "" ? "comment" : b.position;
+  if (typeof position !== "string" || !Object.prototype.hasOwnProperty.call(POSITIONS, position)) {
+    position = null;
+    errors.position = "Choose support, oppose, support with changes, question, or none.";
+  }
   const text = clean(b.text, cfg.maxCommentChars);
   if (!text) errors.text = "Write your comment.";
   else if (text.length > cfg.maxCommentChars) errors.text = "Keep your comment under " + cfg.maxCommentChars.toLocaleString("en-US") + " characters.";
@@ -240,51 +240,14 @@ function validateComment(b, cfg, errors) {
   return { target, position, text };
 }
 
-const NEW_ID = /^(\d{1,2}(\.\d{1,2}){1,3}|SR [A-K](\.\d{1,2}){0,2}(\.[a-z])?)$/;
-function validateProposal(b, cfg, errors) {
-  const title = oneLine(b.title, 120);
-  if (title.length < 4 || title.length > 120) errors.title = "Give your proposal a short title.";
-  const why = clean(b.why, 3000);
-  if (!why) errors.why = "Say in a sentence or two why it's needed.";
-  else if (why.length > 3000) errors.why = "Keep the explanation under 3,000 characters.";
-  else if (tooManyLinks(why)) errors.why = "Please include no more than three links.";
-  const mode = b.mode === "add" || b.mode === "change" ? b.mode : null;
-  if (!mode) errors.mode = "Choose whether you're changing a section or adding one.";
-  const section = typeof b.section === "string" && BLOCKS.has(b.section) ? b.section : null;
-  if (!section) errors.section = "Choose a section.";
-  let newId = null, newTitle = null;
-  if (mode === "add") {
-    newId = oneLine(typeof b.newId === "string" ? b.newId : "", 16);
-    if (!NEW_ID.test(newId)) errors.newId = "Give the new section a number, like 4.8.";
-    else if (BLOCKS.has(newId)) errors.newId = "There is already a section " + newId + ".";
-    newTitle = oneLine(typeof b.newTitle === "string" ? b.newTitle : "", 120) || null;
-  }
-  const nodes = [];
-  let total = 0, bad = false;
-  if (!Array.isArray(b.nodes) || b.nodes.length > 60) bad = true;
-  else for (const n of b.nodes) {
-    if (!n || typeof n !== "object") { bad = true; break; }
-    const k = n.k === "i" || n.k === "h" ? n.k : "p";
-    const t = clean(n.t, 4000).replace(/\s*\n\s*/g, " ");
-    if (!t) continue;
-    if (k === "i") {
-      const l = oneLine(typeof n.l === "string" ? n.l : "", 4);
-      if (!/^(([A-Za-z]|\d{1,2})\.|–)$/.test(l)) { bad = true; break; }
-      nodes.push({ k, l, t });
-    } else nodes.push({ k, t });
-    total += t.length;
-  }
-  if (bad || !nodes.length) errors.nodes = "Write the wording of your amendment.";
-  else if (total > cfg.maxProposalChars) errors.nodes = "Keep the wording under " + cfg.maxProposalChars.toLocaleString("en-US") + " characters.";
-  return { title, why, mode, section, newId, newTitle, nodes };
-}
-
 /* ---------- the public feed ---------- */
 export function publicView(r) {
   const show = r.showName !== false;
-  const base = { id: r.id, kind: r.kind, created: r.created, role: r.role, ld: r.ld || null, name: show ? r.name : null, precinct: show ? (r.precinct || null) : null };
-  if (r.kind === "comment") return { ...base, target: r.target, position: r.position, text: r.text };
-  return { ...base, title: r.title, why: r.why, mode: r.mode, section: r.section, newId: r.newId || null, newTitle: r.newTitle || null, nodes: r.nodes };
+  return {
+    id: r.id, kind: "comment", created: r.created, role: r.role, ld: r.ld || null,
+    name: show ? r.name : null, precinct: show ? (r.precinct || null) : null,
+    target: r.target, position: r.position, text: r.text
+  };
 }
 const byCreated = (a, b) => (a.created < b.created ? -1 : a.created > b.created ? 1 : 0);
 async function upsertFeed(items, pub) {
@@ -322,19 +285,12 @@ export async function handleSubmit(req, context, deps) {
   if (typeof b.website === "string" && b.website.trim()) return json(200, { ok: true, status: "pending", id: null, item: null });
   const cfg = await readConfig(stores, env);
   if (!cfg.open) return json(403, { error: "closed", message: "Comments are closed right now." });
-  const kind = b.kind === "proposal" || b.kind === "comment" ? b.kind : null;
-  if (!kind) return json(400, { error: "invalid", message: "The request couldn't be read.", fields: { kind: "Unknown kind." } });
-  if (kind === "proposal" && !cfg.proposalsOpen) return json(403, { error: "closed", message: "New proposals are closed right now." });
+  if (b.kind != null && b.kind !== "comment") return json(400, { error: "invalid", message: "This site only takes comments.", fields: { kind: "Only comments are accepted." } });
+  const kind = "comment";
   const errors = {};
   const person = validatePerson(b, errors);
-  const item = kind === "comment" ? validateComment(b, cfg, errors) : validateProposal(b, cfg, errors);
+  const item = validateComment(b, cfg, errors);
   if (Object.keys(errors).length) return json(400, { error: "invalid", message: firstMessage(errors), fields: errors });
-  if (kind === "comment" && item.target.startsWith("p:")) {
-    const parent = await stores.items.get("item/" + item.target.slice(2), { type: "json" });
-    if (!parent || parent.kind !== "proposal" || parent.status !== "live") {
-      return json(400, { error: "invalid", message: "That proposal isn't open for comments.", fields: { target: "That proposal isn't open for comments." } });
-    }
-  }
   const t = now();
   const ipHash = hashIp(clientIp(req, context), env);
   let slot;
@@ -358,8 +314,8 @@ export async function handleFeed(req, context, deps) {
   if (req.method !== "GET" && req.method !== "HEAD") return json(405, { error: "method" }, { allow: "GET" });
   const [feed, cfg] = await Promise.all([stores.items.get("feed", { type: "json" }), readConfig(stores, env)]);
   return json(200, {
-    items: (feed && Array.isArray(feed.items)) ? feed.items : [],
-    config: { open: cfg.open, proposalsOpen: cfg.proposalsOpen, moderation: cfg.moderation, maxCommentChars: cfg.maxCommentChars, maxProposalChars: cfg.maxProposalChars }
+    items: ((feed && Array.isArray(feed.items)) ? feed.items : []).filter(x => x && x.kind === "comment"),
+    config: { open: cfg.open, moderation: cfg.moderation, maxCommentChars: cfg.maxCommentChars }
   }, {
     // Browsers always ask again; Netlify's CDN may serve a copy up to 15 seconds old.
     "cache-control": "public, max-age=0, must-revalidate",
@@ -373,7 +329,7 @@ function csvCell(v) {
   if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // keep spreadsheets from running a cell as a formula
   return '"' + s.replace(/"/g, '""') + '"';
 }
-const CSV_COLS = ["id", "kind", "status", "created", "moderated", "target", "name", "email", "role", "precinct", "ld", "showName", "position", "title", "why", "text", "mode", "section", "newId", "newTitle", "nodes", "ipHash"];
+const CSV_COLS = ["id", "status", "created", "moderated", "target", "name", "email", "role", "precinct", "ld", "showName", "position", "text", "ipHash"];
 
 export async function handleAdmin(req, context, deps) {
   const { stores, env = {}, now = Date.now } = deps;
@@ -430,7 +386,7 @@ export async function handleAdmin(req, context, deps) {
       return json(200, { ok: true, config });
     }
     case "rebuild-feed": {
-      const live = (await allItems(stores.items)).filter(x => x.status === "live").map(publicView).sort(byCreated);
+      const live = (await allItems(stores.items)).filter(x => x.status === "live" && x.kind === "comment").map(publicView).sort(byCreated);
       await stores.items.setJSON("feed", { items: live, updated: new Date(t).toISOString() });
       return json(200, { ok: true, count: live.length });
     }
