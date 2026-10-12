@@ -3,23 +3,28 @@
    Storage is Netlify Blobs. Each function passes its stores in, so tests and the local dev server
    can use an in-memory copy (dev/memory-blobs.mjs). Nothing here touches the network itself. */
 import crypto from "node:crypto";
-import { REPAIR_IDS } from "./ids.mjs";
+import { REPAIR_IDS, REPAIR_REVS } from "./ids.mjs";
 
 const REPAIRS = new Set(REPAIR_IDS);
+// The version of each repair's wording. A comment is stamped with the version it was written on.
+export function repairRev(id) { return (REPAIR_REVS && REPAIR_REVS[id]) || 1; }
 
-// The comment form asks only for a precinct, and a precinct means a PCO. The older roles stay so earlier comments still display.
+// The form offers PCO, Precinct Captain, party member and guest, all optional. The older roles stay so earlier comments still display.
 export const ROLES = {
   "pco": "PCO",
+  "captain": "Precinct Captain",
+  "member": "Party member",
+  "other": "Guest",
   "pco-elected": "Elected PCO",
   "pco-appointed": "Appointed PCO",
-  "captain": "Precinct Captain",
   "county-officer": "County party officer",
-  "district-officer": "District officer",
-  "member": "Dues-paying member",
-  "other": "Other or guest"
+  "district-officer": "District officer"
 };
-// "comment" is used when someone doesn't pick a side. The form offers support and oppose; the others are kept for earlier comments.
+// "comment" is used when someone doesn't pick a side. Taking a side is optional.
 export const POSITIONS = { support: "Support", oppose: "Oppose", changes: "Support with changes", question: "Question", comment: "Comment" };
+// How the moderator's reply to a comment is labeled.
+export const REPLIES = { answered: "Answered", changed: "Changed in the revision", kept: "Considered, kept as is", noted: "Noted" };
+const MAX_REPLY = 1500;
 
 /* ---------- settings ---------- */
 // Every limit can be changed from the admin page at any time (saved in Blobs, no redeploy).
@@ -31,7 +36,8 @@ export const DEFAULTS = Object.freeze({
   ipPerDay: 20,             // ... per rolling 24 hours
   allPerHour: 100,          // accepted submissions from everyone together per rolling hour
   allPerDay: 500,           // ... per rolling 24 hours
-  maxCommentChars: 2000
+  maxCommentChars: 2000,
+  replyAs: "the author"     // replies show as "Reply from the author"
 });
 const RANGES = {
   ipPerHour: [1, 1000], ipPerDay: [1, 10000], allPerHour: [1, 100000], allPerDay: [1, 1000000],
@@ -56,6 +62,11 @@ export function cleanConfig(input, base = DEFAULTS) {
   if ("moderation" in input) {
     if (input.moderation === "hold" || input.moderation === "publish") out.moderation = input.moderation;
     else errors.moderation = "Choose hold or publish.";
+  }
+  if ("replyAs" in input) {
+    const v = typeof input.replyAs === "string" ? input.replyAs.replace(/\s+/g, " ").trim() : "";
+    if (v.length < 2 || v.length > 60) errors.replyAs = "Use 2 to 60 characters, like “the author” or your name.";
+    else out.replyAs = v;
   }
   for (const [k, [lo, hi]] of Object.entries(RANGES)) {
     if (!(k in input)) continue;
@@ -220,11 +231,12 @@ function validatePerson(b, errors) {
   if (email && (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))) errors.email = "Check your email address, or leave it blank.";
   const precinct = oneLine(typeof b.precinct === "string" ? b.precinct : "", 16);
   if (precinct && !/^[0-9A-Za-z][0-9A-Za-z -]{0,15}$/.test(precinct)) errors.precinct = "Use your precinct number, like 27-488, or leave it blank.";
+  // A role is only what the person chose. A precinct alone doesn't make someone a PCO: Precinct Captains have one too.
   let role = null;
   if (b.role != null && b.role !== "") {
     if (typeof b.role === "string" && Object.prototype.hasOwnProperty.call(ROLES, b.role)) role = b.role;
-    else errors.role = "Choose your role.";
-  } else if (precinct) role = "pco";
+    else errors.role = "Choose your role, or leave it blank.";
+  }
   return { name, email: email || null, role, precinct: precinct || null, ld: ldOf(precinct), showName: b.showName !== false };
 }
 
@@ -308,11 +320,13 @@ export function screen(name, text) {
 /* ---------- the public feed ---------- */
 export function publicView(r) {
   const show = r.showName !== false;
-  return {
+  const v = {
     id: r.id, kind: "comment", created: r.created, role: r.role, ld: r.ld || null,
     name: show ? r.name : null, precinct: show ? (r.precinct || null) : null,
-    target: r.target, position: r.position, text: r.text
+    target: r.target, position: r.position, text: r.text, rev: r.rev || 1
   };
+  if (r.response) v.response = { status: r.response.status || null, text: r.response.text || "", by: r.response.by || DEFAULTS.replyAs, at: r.response.at };
+  return v;
 }
 const byCreated = (a, b) => (a.created < b.created ? -1 : a.created > b.created ? 1 : 0);
 async function upsertFeed(items, pub) {
@@ -367,7 +381,7 @@ export async function handleSubmit(req, context, deps) {
   const held = screen(person.name, item.text);
   const rec = {
     id: makeId(t), kind, status: cfg.moderation === "publish" && !held.length ? "live" : "pending",
-    created: new Date(t).toISOString(), ...person, ...item, ipHash
+    created: new Date(t).toISOString(), ...person, ...item, rev: repairRev(item.target.slice(2)), ipHash
   };
   if (held.length) rec.held = held;
   await stores.items.setJSON("item/" + rec.id, rec, { onlyIfNew: true });
@@ -396,7 +410,7 @@ function csvCell(v) {
   if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // keep spreadsheets from running a cell as a formula
   return '"' + s.replace(/"/g, '""') + '"';
 }
-const CSV_COLS = ["id", "status", "created", "moderated", "target", "name", "email", "role", "precinct", "ld", "showName", "position", "text", "ipHash", "held"];
+const CSV_COLS = ["id", "status", "created", "moderated", "target", "rev", "name", "email", "role", "precinct", "ld", "showName", "position", "text", "ipHash", "held", "response"];
 
 export async function handleAdmin(req, context, deps) {
   const { stores, env = {}, now = Date.now } = deps;
@@ -436,6 +450,26 @@ export async function handleAdmin(req, context, deps) {
       if (!res.changed) return json(404, { error: "not_found", message: "That item no longer exists." });
       if (b.status === "live") await upsertFeed(stores.items, publicView(res.data));
       else await removeFromFeed(stores.items, b.id);
+      return json(200, { ok: true, item: res.data });
+    }
+    case "respond": {
+      // The moderator's public reply to a comment. Empty status and text remove it.
+      if (!idOk) return json(400, { error: "invalid", message: "Unknown item." });
+      const status = b.status == null || b.status === "" ? null : b.status;
+      if (status !== null && !Object.prototype.hasOwnProperty.call(REPLIES, status)) return json(400, { error: "invalid", message: "Choose answered, changed, kept or noted.", fields: { status: "Choose a kind of reply." } });
+      const text = clean(b.text, MAX_REPLY);
+      if (text.length > MAX_REPLY) return json(400, { error: "invalid", message: "Keep the reply under " + MAX_REPLY.toLocaleString("en-US") + " characters.", fields: { text: "Too long." } });
+      if (!status && !text && b.remove !== true) return json(400, { error: "invalid", message: "Choose a kind of reply or write one.", fields: { text: "Write a reply." } });
+      const cfg = await readConfig(stores, env);
+      const res = await cas(stores.items, "item/" + b.id, d => {
+        if (!d) return undefined;
+        const next = { ...d };
+        if (b.remove === true) delete next.response;
+        else next.response = { status, text, by: cfg.replyAs, at: new Date(t).toISOString() };
+        return next;
+      });
+      if (!res.changed) return json(404, { error: "not_found", message: "That item no longer exists." });
+      if (res.data.status === "live") await upsertFeed(stores.items, publicView(res.data));
       return json(200, { ok: true, item: res.data });
     }
     case "delete": {

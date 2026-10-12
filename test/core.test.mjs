@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryBlobs } from "../dev/memory-blobs.mjs";
-import { handleSubmit, handleFeed, handleAdmin, netlifyStores, cleanConfig, DEFAULTS, screen } from "../netlify/lib/core.mjs";
+import { handleSubmit, handleFeed, handleAdmin, netlifyStores, cleanConfig, DEFAULTS, screen, repairRev } from "../netlify/lib/core.mjs";
 
 const KEY = "test-admin-key-123456";
 function setup(settings, clock) {
@@ -97,7 +97,7 @@ test("comments show right away by default, except ones the automatic check holds
   assert.deepEqual(list.body.items.find(x => x.id === held.body.id).held, ["link"]);
   assert.equal(list.body.items.find(x => x.id === ok.body.id).held, undefined);
   const ex = await admin(e, { action: "export" });
-  assert.match(ex.body.csv, /,ipHash,held\r\n/);
+  assert.match(ex.body.csv, /,ipHash,held,response\r\n/);
   // Hold mode still records why a comment would have been held.
   await configure(e, { moderation: "hold" });
   const h2 = await submit(e, comment({ text: "Call 253-555-0100" }), "1.1.1.3");
@@ -164,9 +164,10 @@ test("validation, honeypot, closed switch and request checks", async () => {
   r = await submit(e, comment({ precinct: "" }));
   assert.equal(r.status, 200); // a precinct is optional
   r = await submit(e, comment({ email: "", role: undefined, precinct: "27-488" }));
-  assert.equal(r.status, 200); // so is an email; a precinct with no role means a PCO
+  assert.equal(r.status, 200); // so is an email, and a role
   const saved = (await admin(e, { action: "list" })).body.items.find(x => x.id === r.body.id);
-  assert.equal(saved.role, "pco"); assert.equal(saved.email, null);
+  // A precinct alone doesn't make someone a PCO: Precinct Captains have one too.
+  assert.equal(saved.role, null); assert.equal(saved.email, null); assert.equal(saved.precinct, "27-488");
   r = await submit(e, comment({ email: "not-an-email" }));
   assert.equal(r.status, 400); assert.ok(r.body.fields.email);
   r = await submit(e, comment({ role: "member", precinct: "" }));
@@ -229,4 +230,55 @@ test("admin: key required, lockout after ten wrong keys, export and cleanup", as
   assert.equal(bad.status, 400);
   const rb = await admin(e, { action: "rebuild-feed" });
   assert.equal(rb.status, 200);
+});
+
+test("each comment is stamped with the version of the repair it was written on", async () => {
+  const e = setup();
+  await configure(e, { moderation: "publish" });
+  assert.equal(repairRev("T1"), 2); assert.equal(repairRev("B2"), 1);
+  const a = await submit(e, comment({ target: "r:T1", role: "captain", precinct: "27-486" }));
+  const b = await submit(e, comment({ target: "r:B2" }));
+  assert.equal(a.body.item.rev, 2); assert.equal(a.body.item.role, "captain");
+  assert.equal(b.body.item.rev, 1);
+  // Comments saved before versions existed show as version 1.
+  await e.stores.items.setJSON("item/old-0000000001", { id: "old-0000000001", kind: "comment", status: "live", created: "2026-10-10T12:00:00Z", target: "r:T1", position: "question", text: "Old", name: "Jo", role: "captain" });
+  await admin(e, { action: "rebuild-feed" });
+  const old = (await feed(e)).body.items.find(x => x.id === "old-0000000001");
+  assert.equal(old.rev, 1); assert.equal(old.role, "captain");
+  const ex = await admin(e, { action: "export" });
+  assert.match(ex.body.csv, /,target,rev,name,/);
+});
+
+test("replies: the moderator answers a comment, edits the answer, and removes it", async () => {
+  const e = setup();
+  await configure(e, { moderation: "publish", replyAs: "  Brian,   the author " });
+  const c = await submit(e, comment({ target: "r:M1", position: "question", text: "Who can serve?" }));
+  let r = await admin(e, { action: "respond", id: c.body.id, status: "changed", text: "The revision lists who can't serve." });
+  assert.equal(r.status, 200);
+  assert.deepEqual(Object.keys(r.body.item.response).sort(), ["at", "by", "status", "text"]);
+  let pub = (await feed(e)).body.items.find(x => x.id === c.body.id);
+  assert.equal(pub.response.status, "changed"); assert.equal(pub.response.by, "Brian, the author");
+  assert.equal(pub.response.text, "The revision lists who can't serve.");
+  assert.equal(pub.email, undefined);
+  r = await admin(e, { action: "respond", id: c.body.id, status: "answered", text: "" });
+  assert.equal(r.status, 200);
+  pub = (await feed(e)).body.items.find(x => x.id === c.body.id);
+  assert.equal(pub.response.status, "answered"); assert.equal(pub.response.text, "");
+  // Bad input
+  assert.equal((await admin(e, { action: "respond", id: c.body.id, status: "maybe", text: "x" })).status, 400);
+  assert.equal((await admin(e, { action: "respond", id: c.body.id, status: "", text: "" })).status, 400);
+  assert.equal((await admin(e, { action: "respond", id: c.body.id, status: "noted", text: "x".repeat(1501) })).status, 400);
+  assert.equal((await admin(e, { action: "respond", id: "nope-00000000", status: "noted" })).status, 404);
+  // A reply on a hidden comment stays private until the comment is live again.
+  await admin(e, { action: "set-status", id: c.body.id, status: "hidden" });
+  await admin(e, { action: "respond", id: c.body.id, status: "noted", text: "Hidden for now." });
+  assert.equal((await feed(e)).body.items.find(x => x.id === c.body.id), undefined);
+  await admin(e, { action: "set-status", id: c.body.id, status: "live" });
+  assert.equal((await feed(e)).body.items.find(x => x.id === c.body.id).response.text, "Hidden for now.");
+  r = await admin(e, { action: "respond", id: c.body.id, remove: true });
+  assert.equal(r.status, 200); assert.equal(r.body.item.response, undefined);
+  assert.equal((await feed(e)).body.items.find(x => x.id === c.body.id).response, undefined);
+  // The signature setting is checked.
+  assert.equal((await admin(e, { action: "set-config", config: { replyAs: "x" } })).status, 400);
+  assert.equal(cleanConfig({}).config.replyAs, "the author");
 });
