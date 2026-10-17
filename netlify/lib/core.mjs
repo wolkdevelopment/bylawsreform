@@ -1,9 +1,11 @@
-/* Shared logic for the bylaws site's three functions: settings, validation, rate limits and storage.
+/* Shared logic for the bylaws site's functions: settings, the access code, validation, rate limits and storage.
+   The plan page and its comments open only for people who have entered the access code. The front page
+   takes the code, or a request for it, which waits on the admin page.
    The site takes one kind of post: a comment on one of the repairs.
    Storage is Netlify Blobs. Each function passes its stores in, so tests and the local dev server
    can use an in-memory copy (dev/memory-blobs.mjs). Nothing here touches the network itself. */
 import crypto from "node:crypto";
-import { REPAIR_IDS, REPAIR_REVS } from "./ids.mjs";
+import { REPAIR_IDS, REPAIR_REVS, REPAIR_LABELS } from "./ids.mjs";
 
 const REPAIRS = new Set(REPAIR_IDS);
 // The version of each repair's wording. A comment is stamped with the version it was written on.
@@ -37,7 +39,8 @@ export const DEFAULTS = Object.freeze({
   allPerHour: 100,          // accepted submissions from everyone together per rolling hour
   allPerDay: 500,           // ... per rolling 24 hours
   maxCommentChars: 2000,
-  replyAs: "the author"     // replies show as "Reply from the author"
+  replyAs: "the author",    // replies show as "Reply from the author"
+  accessCode: ""            // the code that opens the plan; blank keeps it closed to everyone
 });
 const RANGES = {
   ipPerHour: [1, 1000], ipPerDay: [1, 10000], allPerHour: [1, 100000], allPerDay: [1, 1000000],
@@ -68,6 +71,11 @@ export function cleanConfig(input, base = DEFAULTS) {
     if (v.length < 2 || v.length > 60) errors.replyAs = "Use 2 to 60 characters, like “the author” or your name.";
     else out.replyAs = v;
   }
+  if ("accessCode" in input) {
+    const v = typeof input.accessCode === "string" ? input.accessCode.replace(/\s+/g, " ").trim() : "";
+    if (v && (v.length > 40 || normCode(v).length < 4)) errors.accessCode = "Use at least 4 letters or numbers (40 characters at most), or leave it blank to close the plan.";
+    else out.accessCode = v;
+  }
   for (const [k, [lo, hi]] of Object.entries(RANGES)) {
     if (!(k in input)) continue;
     const n = typeof input[k] === "string" && input[k].trim() !== "" ? Number(input[k]) : input[k];
@@ -83,6 +91,7 @@ function envConfig(env) {
   const o = {};
   for (const [k, name] of Object.entries(ENV_KEYS)) if (env && env[name] != null && env[name] !== "") o[k] = env[name];
   if (env && env.MODERATION) o.moderation = env.MODERATION;
+  if (env && env.ACCESS_CODE) o.accessCode = env.ACCESS_CODE;
   return o;
 }
 
@@ -222,6 +231,57 @@ function limitMessage(slot) {
   return "The site is busy. Please try again in a few seconds.";
 }
 
+/* ---------- the access code ----------
+   The plan and its comments open only with the code set on the admin page. Entering it sets a cookie
+   holding a keyed hash of the code, never the code itself, so changing the code signs everyone out.
+   Capitals, spaces and punctuation in the code don't matter. */
+export const ACCESS_COOKIE = "bw_access";
+const ACCESS_DAYS = 90;
+const ACCESS_FAILS_PER_HOUR = 10;           // wrong codes from one connection before an hour's lockout
+const REQUESTS_PER_IP_DAY = 5, REQUESTS_ALL_DAY = 200;
+const MAX_NOTE = 500;
+export function normCode(s) { return typeof s === "string" ? s.toLowerCase().replace(/[^a-z0-9]/g, "") : ""; }
+function accessKey(env) { return (env && (env.ACCESS_SECRET || env.ADMIN_KEY || env.IP_SALT)) || "pcrp-bylaws"; }
+export function accessToken(cfg, env) {
+  const code = normCode(cfg && cfg.accessCode);
+  if (!code) return null;
+  return crypto.createHmac("sha256", accessKey(env)).update("access-v1:" + code).digest("base64url");
+}
+function readCookie(req, name) {
+  for (const part of (req.headers.get("cookie") || "").split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+  }
+  return "";
+}
+export function hasAccess(req, cfg, env) {
+  const token = accessToken(cfg, env), got = readCookie(req, ACCESS_COOKIE);
+  return !!(token && got && safeEqual(got, token));
+}
+function accessCookie(req, token) {
+  let secure = "";
+  try { if (new URL(req.url).protocol === "https:") secure = "; Secure"; } catch { secure = "; Secure"; }
+  return ACCESS_COOKIE + "=" + token + "; Path=/; Max-Age=" + ACCESS_DAYS * 86400 + "; HttpOnly; SameSite=Lax" + secure;
+}
+function locked() {
+  return json(401, { error: "locked", message: "Your access code has changed. Reload the page and enter the new code." });
+}
+// One rolling 24-hour window, used for access requests.
+async function takeDaily(limits, key, max, now) {
+  try {
+    await cas(limits, key, d => {
+      const t = ((d && Array.isArray(d.t)) ? d.t : []).filter(x => typeof x === "number" && x > now - DAY).sort((a, b) => a - b);
+      if (t.length >= max) throw { limited: true, retryAfter: Math.max(1, Math.ceil((t[0] + DAY - now) / 1000)) };
+      t.push(now);
+      return { t };
+    });
+    return { ok: true };
+  } catch (e) {
+    if (e && e.limited) return { ok: false, retryAfter: e.retryAfter };
+    throw e;
+  }
+}
+
 /* ---------- validation ---------- */
 // Only a name is required. Email and precinct are optional, so no one is turned away for skipping them.
 function validatePerson(b, errors) {
@@ -351,18 +411,24 @@ async function allItems(items) {
   const list = await mapLimit(blobs || [], 16, x => items.get(x.key, { type: "json" }));
   return list.filter(Boolean);
 }
+async function allRequests(access) {
+  const { blobs } = await access.list({ prefix: "req/" });
+  const list = await mapLimit(blobs || [], 16, x => access.get(x.key, { type: "json" }));
+  return list.filter(Boolean).sort((x, y) => byCreated(y, x));
+}
 
 /* ---------- POST /api/submit ---------- */
 export async function handleSubmit(req, context, deps) {
   const { stores, env = {}, now = Date.now } = deps;
   if (req.method !== "POST") return json(405, { error: "method" }, { allow: "POST" });
   if (!(req.headers.get("content-type") || "").includes("application/json")) return json(415, { error: "type", message: "The request couldn't be read." });
+  const cfg = await readConfig(stores, env);
+  if (!hasAccess(req, cfg, env)) return locked();
   const r = await readJson(req);
   if (r.error) return r.error;
   const b = r.body;
   // Honeypot: a hidden field people never see. Bots fill it in; answer normally and save nothing.
   if (typeof b.website === "string" && b.website.trim()) return json(200, { ok: true, status: "pending", id: null, item: null });
-  const cfg = await readConfig(stores, env);
   if (!cfg.open) return json(403, { error: "closed", message: "Comments are closed right now." });
   if (b.kind != null && b.kind !== "comment") return json(400, { error: "invalid", message: "This site only takes comments.", fields: { kind: "Only comments are accepted." } });
   const kind = "comment";
@@ -390,17 +456,110 @@ export async function handleSubmit(req, context, deps) {
 }
 
 /* ---------- GET /api/feed ---------- */
+// The page asks once when it opens, and again only when someone taps "Check for new comments."
 export async function handleFeed(req, context, deps) {
   const { stores, env = {} } = deps;
   if (req.method !== "GET" && req.method !== "HEAD") return json(405, { error: "method" }, { allow: "GET" });
   const [feed, cfg] = await Promise.all([stores.items.get("feed", { type: "json" }), readConfig(stores, env)]);
+  if (!hasAccess(req, cfg, env)) return locked();
   return json(200, {
     items: ((feed && Array.isArray(feed.items)) ? feed.items : []).filter(x => x && x.kind === "comment"),
     config: { open: cfg.open, moderation: cfg.moderation, maxCommentChars: cfg.maxCommentChars }
   }, {
-    // Browsers always ask again; Netlify's CDN may serve a copy up to 15 seconds old.
-    "cache-control": "public, max-age=0, must-revalidate",
-    "netlify-cdn-cache-control": "public, s-maxage=15, stale-while-revalidate=45"
+    // Only for people with the code, so no shared copies: Netlify's CDN must not keep one.
+    "cache-control": "private, no-store"
+  });
+}
+
+/* ---------- /api/access: the front page ----------
+   GET says whether this browser already has access. POST { action: "enter", code } checks the code and
+   sets the cookie. POST { action: "request", name, email, ... } leaves a request on the admin page. */
+export async function handleAccess(req, context, deps) {
+  const { stores, env = {}, now = Date.now } = deps;
+  const cfg = await readConfig(stores, env);
+  if (req.method === "GET" || req.method === "HEAD") return json(200, { access: hasAccess(req, cfg, env), open: !!accessToken(cfg, env) });
+  if (req.method !== "POST") return json(405, { error: "method" }, { allow: "GET, POST" });
+  if (!(req.headers.get("content-type") || "").includes("application/json")) return json(415, { error: "type", message: "The request couldn't be read." });
+  const r = await readJson(req);
+  if (r.error) return r.error;
+  const b = r.body, t = now(), ipHash = hashIp(clientIp(req, context), env);
+
+  if (b.action === "enter") {
+    const failKey = "accessfail/" + ipHash;
+    const fails = ((await stores.limits.get(failKey, { type: "json" })) || {}).t || [];
+    const recent = fails.filter(x => typeof x === "number" && x > t - HOUR).sort((x, y) => x - y);
+    if (recent.length >= ACCESS_FAILS_PER_HOUR) {
+      const retryAfter = Math.max(1, Math.ceil((recent[0] + HOUR - t) / 1000));
+      return json(429, { error: "locked_out", retryAfter, message: "Too many wrong codes from this connection. Try again in about " + minutes(retryAfter) + ", or ask for access below." }, { "retry-after": String(retryAfter) });
+    }
+    const token = accessToken(cfg, env);
+    if (!token) return json(403, { error: "closed", message: "The plan isn't open to anyone right now. You can still ask for access below." });
+    const code = normCode(b.code);
+    if (!code) return json(400, { error: "invalid", message: "Enter the access code.", fields: { code: "Enter the access code." } });
+    if (!safeEqual(code, normCode(cfg.accessCode))) {
+      await cas(stores.limits, failKey, d => ({ t: [...((d && d.t) || []).filter(x => x > t - HOUR), t] })).catch(() => {});
+      return json(401, { error: "wrong", message: "That code isn't right. Check it and try again, or ask for access below.", fields: { code: "That code isn't right." } });
+    }
+    return json(200, { ok: true }, { "set-cookie": accessCookie(req, token) });
+  }
+
+  if (b.action === "request") {
+    // Honeypot, as on comments: answer normally and save nothing.
+    if (typeof b.website === "string" && b.website.trim()) return json(200, { ok: true });
+    const errors = {};
+    const p = validatePerson(b, errors);
+    if (!p.email && !errors.email) errors.email = "Enter your email, so the code can be sent to you.";
+    const note = clean(b.note, MAX_NOTE);
+    if (note.length > MAX_NOTE) errors.note = "Keep the note under " + MAX_NOTE + " characters.";
+    if (Object.keys(errors).length) return json(400, { error: "invalid", message: firstMessage(errors), fields: errors });
+    const ipKey = "req/" + ipHash;
+    let scope = null, retryAfter = 0;
+    try {
+      const mine = await takeDaily(stores.limits, ipKey, REQUESTS_PER_IP_DAY, t);
+      if (!mine.ok) { scope = "ip"; retryAfter = mine.retryAfter; }
+      else {
+        const all = await takeDaily(stores.limits, "reqall", REQUESTS_ALL_DAY, t);
+        if (!all.ok) {
+          scope = "all"; retryAfter = all.retryAfter;
+          // The site-wide limit was hit: give this person's slot back.
+          await cas(stores.limits, ipKey, d => (d && Array.isArray(d.t) ? { t: d.t.filter(x => x !== t) } : undefined)).catch(() => {});
+        }
+      }
+    } catch { scope = "busy"; retryAfter = 5; }
+    if (scope) {
+      const message = scope === "ip" ? "You've already sent several requests today. The site owner will answer by email."
+        : scope === "all" ? "The site has had too many requests today. Please try again tomorrow."
+        : "The site is busy. Please try again in a few seconds.";
+      return json(429, { error: "rate_limited", scope, retryAfter, message }, { "retry-after": String(retryAfter) });
+    }
+    const rec = { id: makeId(t), created: new Date(t).toISOString(), status: "new", name: p.name, email: p.email, role: p.role, precinct: p.precinct, note, ipHash };
+    await stores.access.setJSON("req/" + rec.id, rec, { onlyIfNew: true });
+    return json(200, { ok: true });
+  }
+
+  return json(400, { error: "action", message: "Unknown action." });
+}
+
+/* ---------- GET /plan: the plan itself ----------
+   Served by a function, not as a public file, so it reaches only people with the access code.
+   Everyone else is sent to the front page. */
+const PAGE_HEADERS = {
+  "x-robots-tag": "noindex, nofollow",
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "x-frame-options": "DENY",
+  "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+};
+export async function handlePlan(req, context, deps, html) {
+  const { stores, env = {} } = deps;
+  if (req.method !== "GET" && req.method !== "HEAD") return new Response(null, { status: 405, headers: { allow: "GET, HEAD" } });
+  const cfg = await readConfig(stores, env);
+  if (!hasAccess(req, cfg, env)) {
+    return new Response(null, { status: 302, headers: { location: "/", "cache-control": "no-store", ...PAGE_HEADERS } });
+  }
+  return new Response(req.method === "HEAD" ? null : html, {
+    status: 200,
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store", ...PAGE_HEADERS }
   });
 }
 
@@ -440,9 +599,23 @@ export async function handleAdmin(req, context, deps) {
       const times = ((all && all.t) || []).filter(x => typeof x === "number");
       return json(200, {
         items,
+        access: await allRequests(stores.access),
+        labels: REPAIR_LABELS || {},
         config: await readConfig(stores, env),
         usage: { lastHour: times.filter(x => x > t - HOUR).length, lastDay: times.filter(x => x > t - DAY).length }
       });
+    }
+    case "access-status": {
+      // Mark a request for the access code as handled, or not.
+      if (!idOk || !["new", "done"].includes(b.status)) return json(400, { error: "invalid", message: "Unknown request or status." });
+      const res = await cas(stores.access, "req/" + b.id, d => (d ? { ...d, status: b.status, handled: new Date(t).toISOString() } : undefined));
+      if (!res.changed) return json(404, { error: "not_found", message: "That request no longer exists." });
+      return json(200, { ok: true, request: res.data });
+    }
+    case "access-delete": {
+      if (!idOk) return json(400, { error: "invalid", message: "Unknown request." });
+      await stores.access.delete("req/" + b.id);
+      return json(200, { ok: true });
     }
     case "set-status": {
       if (!idOk || !["live", "hidden", "pending"].includes(b.status)) return json(400, { error: "invalid", message: "Unknown item or status." });
@@ -493,7 +666,7 @@ export async function handleAdmin(req, context, deps) {
     }
     case "cleanup": {
       let removed = 0;
-      for (const prefix of ["ip/", "adminfail/"]) {
+      for (const prefix of ["ip/", "adminfail/", "accessfail/", "req/"]) {
         const { blobs } = await stores.limits.list({ prefix });
         await mapLimit(blobs || [], 16, async x => {
           const d = await stores.limits.get(x.key, { type: "json" });
@@ -515,5 +688,5 @@ export async function handleAdmin(req, context, deps) {
 /* ---------- wiring for Netlify ---------- */
 export function netlifyStores(getStore) {
   const s = name => getStore({ name, consistency: "strong" });
-  return { items: s("bylaws-items"), limits: s("bylaws-limits"), config: s("bylaws-config") };
+  return { items: s("bylaws-items"), limits: s("bylaws-limits"), config: s("bylaws-config"), access: s("bylaws-access") };
 }

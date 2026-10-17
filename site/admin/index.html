@@ -47,9 +47,11 @@ label.f input, label.f select { font: inherit; font-weight: 400; min-height: 2.7
 .err { color: var(--bad); font-weight: 700; }
 .meter { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; }
 .meter b { font-size: 1.3rem; }
-.tabs { display: flex; flex-wrap: wrap; gap: .4rem; }
-.tabs button { font: inherit; font-weight: 700; min-height: 2.6rem; padding: .3rem .9rem; border-radius: 999px; border: 1px solid var(--rule-strong); background: var(--sheet); color: var(--ink); cursor: pointer; }
-.tabs button[aria-pressed="true"] { background: var(--navy); color: var(--navy-ink); border-color: var(--navy); }
+.tabs, .rtabs { display: flex; flex-wrap: wrap; gap: .4rem; }
+.tabs button, .rtabs button { font: inherit; font-weight: 700; min-height: 2.6rem; padding: .3rem .9rem; border-radius: 999px; border: 1px solid var(--rule-strong); background: var(--sheet); color: var(--ink); cursor: pointer; }
+.tabs button[aria-pressed="true"], .rtabs button[aria-pressed="true"] { background: var(--navy); color: var(--navy-ink); border-color: var(--navy); }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+.panel h3 { font-size: 1.1rem; }
 .items { display: grid; gap: .8rem; }
 .item { border: 1px solid var(--rule); border-radius: var(--radius); padding: .8rem .9rem; display: grid; gap: .45rem; background: var(--sheet); min-width: 0; }
 .item.pending { border-left: 5px solid var(--flag-rule); }
@@ -97,9 +99,26 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
       <div class="meter" id="meter"></div>
     </section>
 
+    <section class="panel" id="access">
+      <h2>Access</h2>
+      <p class="hint">The plan opens only with this code. People type it on the front page, and capital letters, spaces and punctuation don't matter. Changing it signs everyone out until they enter the new one. Leave it blank to close the plan to everyone.</p>
+      <form id="acc" class="row" novalidate>
+        <label class="f" style="flex:1 1 16rem">Access code<input name="accessCode" type="text" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+        <button class="btn" type="submit">Save code</button>
+      </form>
+      <p class="status" id="acc-status" aria-live="polite"></p>
+      <h3>Requests for the code</h3>
+      <p class="hint">“Email the code” opens your email app with a message ready to send. Mark the request done after you send it.</p>
+      <div class="rtabs" role="group" aria-label="Show requests">
+        <button type="button" data-a="new" aria-pressed="true">Waiting</button>
+        <button type="button" data-a="done" aria-pressed="false">Done</button>
+      </div>
+      <div class="items" id="requests"></div>
+    </section>
+
     <section class="panel">
       <h2>Settings</h2>
-      <p class="hint">Changes take effect within about a minute. No redeploy needed.</p>
+      <p class="hint">Changes take effect right away. No redeploy needed.</p>
       <form id="cfg" class="grid">
         <label class="f">Accept new comments
           <select name="open"><option value="true">Yes</option><option value="false">No, closed</option></select></label>
@@ -147,7 +166,7 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
 <script>
 (function () {
   "use strict";
-  var LABELS = {"H1":"Repair 1 · Amendment 1: Fix a reference to sections that don't exist","H2":"Repair 2 · Amendment 2: Fix the references in the district officers section","H3":"Repair 3 · Amendment 3 and Standing Rule amendment 1: Use one name for the reorganization meeting","H4":"Repair 4 · Amendment 4: Use one name for the fund-raising director and committee","H5":"Repair 5 · Standing Rule amendment 2: Use one name for the Endorsements Committee","H6":"Repair 6 · Amendment 5: Use one title for the District Chair","H7":"Repair 7 · Amendment 6: Correct the state party's abbreviation","H8":"Repair 8 · Amendment 7 and Standing Rule amendment 3: Remove leftover and garbled text","H9":"Repair 9 · Amendment 8 and Standing Rule amendment 4: Name Robert's Rules the same way everywhere","H10":"Repair 10 · Amendment 9: Update a note about state law","H11":"Repair 11 · Amendment 10: Make the legal-fees rule match its section","H12":"Repair 12 · Amendment 11: Update citations to the campaign finance law","B1":"Repair 13 · Amendment 12: Count votes the standard way","B2":"Repair 14 · Amendment 13: No one loses membership without notice, a hearing and a vote","B3":"Repair 15 · Amendment 14: Settle who votes in the Central Committee","B4":"Repair 16 · Amendment 15: Keep the Communications Director elected","B5":"Repair 17 · Amendment 16: The Central Committee approves the Budget Committee","B6":"Repair 18 · Amendment 17: District officers get a hearing before removal","B7":"Repair 19 · Amendment 18: Notice and appeal before a PCO is made inactive","B8":"Repair 20 · Amendment 19: Voter-check procedures in writing, approved by the Board","B9":"Repair 21 · Standing Rule amendment 5: Write the rule for vetting candidates","B10":"Repair 22 · Amendment 20: One officer can't block a PCO appointment","B11":"Repair 23 · Amendment 21: Who can call a special Board meeting","B12":"Repair 24 · Amendment 22: Job descriptions for district officers, and district committees","B13":"Repair 25 · Standing Rule amendment 6: A clear dues year","B14":"Repair 26 · Amendment 23: Committees may meet by video or phone","G1":"Repair 27 · Amendment 24: Secret ballots in every officer election","G2":"Repair 28 · Amendment 25: Know the candidates ahead of time, without closing the field","G3":"Repair 29 · Amendment 26: Join district meetings by video","G4":"Repair 30 · Amendment 27: Guests are welcome, and order is kept","G5":"Repair 31 · Amendment 28: Set up the Bylaws and Endorsements Committees, approved by the full body","G6":"Repair 32 · Amendment 29: Training materials for new PCOs","F1":"Repair 33 · Amendment 30: Define the words the bylaws use","F2":"Repair 34 · Amendment 31: Every proposal shows its exact wording and fixes what it touches","F3":"Repair 35 · Amendment 32: One subject per amendment","F4":"Repair 36 · Amendment 33: No changing election rules right before an election","F5":"Repair 37 · Amendment 34: The Secretary can fix numbering and typos","F6":"Repair 38 · Amendment 35: Everyone gets the current rulebook after every change","F7":"Repair 39 · Amendment 36: Review the whole rulebook every two years","F8":"Repair 40 · Amendment 37: If one part is struck down, the rest still stands","M1":"Repair 41 · Amendment 38: Review the books every year, with an outside audit when needed","T1":"Repair 42 · Amendment 39: A fair trial before anyone is disciplined","S1":"Repair 43 · Amendment 40: Keep order at meetings without shutting members out","X1":"Repair 44 · Amendment 41: A fast, narrow safety bar for real emergencies","W1":"Repair 45 · Amendment 42: Update references to the state party's bylaws"};
+  var LABELS = {}; // repair labels come from the admin API after sign-in
   var REVS = {"M1":2,"T1":2,"S1":2,"X1":2};
   var REPLY = { answered: "Answered", changed: "Changed in the revision", kept: "Considered, kept as is", noted: "Noted" };
   var ROLES = { "pco": "PCO", "captain": "Precinct Captain", "member": "Party member", "other": "Guest", "pco-elected": "Elected PCO", "pco-appointed": "Appointed PCO", "county-officer": "County party officer", "district-officer": "District officer" };
@@ -170,7 +189,7 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
   }
   var KEY = "";
   try { KEY = sessionStorage.getItem("bw-admin-key") || ""; } catch (e) { KEY = ""; }
-  var DATA = { items: [], config: {}, usage: {} }, FILTER = "pending";
+  var DATA = { items: [], access: [], config: {}, usage: {} }, FILTER = "pending", AFILTER = "new";
 
   function api(action, extra) {
     var body = Object.assign({ action: action }, extra || {});
@@ -199,8 +218,9 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
     ok($("#list-status"), "Loading…");
     return api("list").then(function (d) {
       DATA = d;
+      LABELS = d.labels || {};
       $("#login").hidden = true; $("#app").hidden = false; $("#signout").hidden = false;
-      renderMeter(); renderConfig(); renderItems();
+      renderMeter(); renderConfig(); renderItems(); renderRequests();
     }, function (err) { fail($("#list-status"), err); if (!$("#app").hidden) return; fail($("#login-status"), err); });
   }
 
@@ -209,7 +229,8 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
     (DATA.items || []).forEach(function (x) { n[x.status] = (n[x.status] || 0) + 1; });
     var m = $("#meter");
     m.textContent = "";
-    [["Waiting for you", n.pending], ["Live", n.live], ["Hidden", n.hidden],
+    var asks = (DATA.access || []).filter(function (x) { return (x.status || "new") === "new"; }).length;
+    [["Waiting for you", n.pending], ["Live", n.live], ["Hidden", n.hidden], ["Access requests waiting", asks],
      ["Posts in the last hour", (u.lastHour || 0) + " of " + c.allPerHour], ["Posts in the last 24 hours", (u.lastDay || 0) + " of " + c.allPerDay]
     ].forEach(function (r) { m.appendChild(h("p", {}, [h("b", { text: String(r[1]) }), " " + r[0]])); });
     var needs = (DATA.items || []).filter(needsReply).length;
@@ -223,6 +244,7 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
   function renderConfig() {
     var f = $("#cfg"), c = DATA.config || {};
     Object.keys(c).forEach(function (k) { if (f.elements[k]) f.elements[k].value = String(c[k]); });
+    $("#acc").elements.accessCode.value = c.accessCode || "";
   }
   function targetText(x) {
     if (x.kind !== "comment") return "Old member proposal: " + (x.title || ""); // from before proposals were removed
@@ -264,6 +286,62 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
       box.appendChild(h("article", { class: "item " + x.status }, kids));
     });
   }
+  /* ---------- requests for the access code ---------- */
+  function mailtoFor(x, code) {
+    var first = String(x.name || "").trim().split(/\s+/)[0] || "there";
+    var body = "Hi " + first + ",\n\nThanks for asking. The access code for the bylaws repair plan is: " + code +
+      "\n\nOpen " + location.origin + "/ and enter it. Your device will remember it for 90 days.\n";
+    var addr = String(x.email || "").replace(/[?&#%]/g, encodeURIComponent);
+    return "mailto:" + addr + "?subject=" + encodeURIComponent("Access to the bylaws repair plan") + "&body=" + encodeURIComponent(body);
+  }
+  function renderRequests() {
+    var all = DATA.access || [], box = $("#requests");
+    var count = function (f) { return all.filter(function (x) { return (x.status || "new") === f; }).length; };
+    $$(".rtabs button").forEach(function (b) {
+      var f = b.getAttribute("data-a");
+      b.textContent = (f === "new" ? "Waiting" : "Done") + " (" + count(f) + ")";
+    });
+    var list = all.filter(function (x) { return (x.status || "new") === AFILTER; });
+    var code = (DATA.config && DATA.config.accessCode) || "";
+    box.textContent = "";
+    if (!list.length) { box.appendChild(h("p", { class: "status", text: AFILTER === "new" ? "No requests waiting." : "Nothing here yet." })); return; }
+    list.forEach(function (x) {
+      var when = new Date(x.created);
+      var who = [ROLES[x.role] || x.role, x.precinct ? "Precinct " + x.precinct : ""].filter(Boolean).join(" · ");
+      var kids = [
+        h("p", {}, [h("strong", { text: x.name || "" }), who ? " · " + who : ""]),
+        h("p", { class: "meta" }, [h("a", { href: "mailto:" + String(x.email || "").replace(/[?&#%]/g, encodeURIComponent), text: x.email || "" }), h("span", { text: isNaN(when) ? "" : when.toLocaleString() })])
+      ];
+      if (x.note) kids.push(h("p", { class: "body", text: x.note }));
+      var actions = h("div", { class: "row" });
+      actions.appendChild(code ? h("a", { class: "btn", href: mailtoFor(x, code), text: "Email the code" })
+                               : h("button", { type: "button", class: "btn", disabled: "disabled", text: "Email the code" }));
+      var isDone = x.status === "done";
+      actions.appendChild(h("button", { type: "button", class: "btn quiet", text: isDone ? "Move back to waiting" : "Mark done", on: { click: function () { setAccess(x, isDone ? "new" : "done", this); } } }));
+      actions.appendChild(h("button", { type: "button", class: "btn danger", text: "Delete", on: { click: function () { delAccess(x, this); } } }));
+      kids.push(actions);
+      if (!code) kids.push(h("p", { class: "hint", text: "Set an access code above first." }));
+      box.appendChild(h("article", { class: "item " + (isDone ? "hidden" : "pending") }, kids));
+    });
+  }
+  function setAccess(x, status, btn) {
+    btn.disabled = true;
+    api("access-status", { id: x.id, status: status }).then(function (d) {
+      DATA.access = DATA.access.map(function (y) { return y.id === x.id ? d.request : y; });
+      renderMeter(); renderRequests();
+      ok($("#acc-status"), status === "done" ? "Marked done." : "Moved back to waiting.");
+    }, function (err) { btn.disabled = false; fail($("#acc-status"), err); });
+  }
+  function delAccess(x, btn) {
+    if (!window.confirm("Delete this request? This can't be undone.")) return;
+    btn.disabled = true;
+    api("access-delete", { id: x.id }).then(function () {
+      DATA.access = DATA.access.filter(function (y) { return y.id !== x.id; });
+      renderMeter(); renderRequests();
+      ok($("#acc-status"), "Request deleted.");
+    }, function (err) { btn.disabled = false; fail($("#acc-status"), err); });
+  }
+
   function openReply(x, slot) {
     if (slot.firstChild) { slot.textContent = ""; return; }
     var cur = x.response || {}, name = "rs-" + x.id;
@@ -293,7 +371,7 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
       api("respond", Object.assign({ id: x.id }, body)).then(function (d) {
         DATA.items = DATA.items.map(function (y) { return y.id === x.id ? d.item : y; });
         renderMeter(); renderItems();
-        ok($("#list-status"), (body.remove ? "Reply removed." : "Reply saved.") + (d.item.status === "live" ? " The public page updates within about a minute." : ""));
+        ok($("#list-status"), (body.remove ? "Reply removed." : "Reply saved.") + (d.item.status === "live" ? " Readers see it the next time they open the page." : ""));
       }, function (err) { btn.disabled = false; fail(st, err); });
     }
     save.addEventListener("click", function () {
@@ -313,7 +391,7 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
     api("set-status", { id: x.id, status: status }).then(function (d) {
       DATA.items = DATA.items.map(function (y) { return y.id === x.id ? d.item : y; });
       renderMeter(); renderItems();
-      ok($("#list-status"), "Marked " + (STATUS[status] || status).toLowerCase() + ". The public page updates within about a minute.");
+      ok($("#list-status"), "Marked " + (STATUS[status] || status).toLowerCase() + ". Readers see the change the next time they open the page.");
     }, function (err) { btn.disabled = false; fail($("#list-status"), err); });
   }
   function del(x, btn) {
@@ -341,6 +419,24 @@ label.f textarea { font: inherit; font-weight: 400; width: 100%; min-height: 6re
     var st = $("#cfg-status");
     ok(st, "Saving…");
     api("set-config", { config: cfg }).then(function (d) { DATA.config = d.config; renderConfig(); renderMeter(); ok(st, "Saved."); }, function (err) { fail(st, err); });
+  });
+  $("#acc").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var st = $("#acc-status"), v = $("#acc").elements.accessCode.value.trim(), cur = (DATA.config && DATA.config.accessCode) || "";
+    if (v === cur) { ok(st, cur ? "That's already the code." : "The plan is already closed. Type a code to open it."); return; }
+    if (cur && !window.confirm(v ? "Change the access code? Everyone who entered the old code will need the new one." : "Close the plan? No one can open it until you set a code again.")) return;
+    ok(st, "Saving…");
+    api("set-config", { config: { accessCode: v } }).then(function (d) {
+      DATA.config = d.config; renderConfig(); renderRequests();
+      ok(st, d.config.accessCode ? "Saved. The code is “" + d.config.accessCode + ".”" : "Saved. The plan is closed to everyone.");
+    }, function (err) { fail(st, err); });
+  });
+  $$(".rtabs button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      AFILTER = b.getAttribute("data-a");
+      $$(".rtabs button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      renderRequests();
+    });
   });
   $$(".tabs button").forEach(function (b) {
     b.addEventListener("click", function () {

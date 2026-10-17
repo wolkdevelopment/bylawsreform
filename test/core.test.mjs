@@ -2,9 +2,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryBlobs } from "../dev/memory-blobs.mjs";
-import { handleSubmit, handleFeed, handleAdmin, netlifyStores, cleanConfig, DEFAULTS, screen, repairRev } from "../netlify/lib/core.mjs";
+import { handleSubmit, handleFeed, handleAdmin, handleAccess, handlePlan, netlifyStores, cleanConfig, DEFAULTS, screen, repairRev, normCode, ACCESS_COOKIE } from "../netlify/lib/core.mjs";
 
 const KEY = "test-admin-key-123456";
+const CODE = "Repair 2027";
 function setup(settings, clock) {
   const mem = createMemoryBlobs();
   const stores = netlifyStores(mem.getStore);
@@ -18,10 +19,24 @@ function post(path, body, headers = {}) {
 }
 const person = { name: "Pat Example", email: "pat@example.com", role: "pco-elected", precinct: "27-488", showName: true };
 const comment = (extra = {}) => ({ kind: "comment", target: "r:B2", position: "support", text: "This is fair.", ...person, ...extra });
-async function submit(env, body, ip = "1.1.1.1") { const res = await handleSubmit(post("/api/submit", body), { ip }, env.deps); return { status: res.status, body: await res.json(), res }; }
 async function admin(env, body, key = KEY, ip = "9.9.9.9") { const res = await handleAdmin(post("/api/admin", body, { "x-admin-key": key }), { ip }, env.deps); return { status: res.status, body: await res.json() }; }
-async function feed(env) { const res = await handleFeed(new Request("https://site.test/api/feed"), {}, env.deps); return { status: res.status, body: await res.json(), res }; }
 async function configure(env, cfg) { const r = await admin(env, { action: "set-config", config: cfg }); assert.equal(r.status, 200, JSON.stringify(r.body)); }
+async function access(env, body, ip = "4.4.4.4", headers = {}) {
+  const res = await handleAccess(body ? post("/api/access", body, headers) : new Request("https://site.test/api/access", { headers }), { ip }, env.deps);
+  return { status: res.status, body: await res.json(), res };
+}
+// Sets the access code (once per test) and enters it, the way the front page does, keeping the cookie.
+async function unlock(env) {
+  if (env.cookie) return env.cookie;
+  await configure(env, { accessCode: CODE });
+  const r = await access(env, { action: "enter", code: CODE });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  env.cookie = r.res.headers.get("set-cookie").split(";")[0];
+  return env.cookie;
+}
+async function submit(env, body, ip = "1.1.1.1") { const res = await handleSubmit(post("/api/submit", body, { cookie: await unlock(env) }), { ip }, env.deps); return { status: res.status, body: await res.json(), res }; }
+async function feed(env) { const res = await handleFeed(new Request("https://site.test/api/feed", { headers: { cookie: await unlock(env) } }), {}, env.deps); return { status: res.status, body: await res.json(), res }; }
+async function plan(env, cookie, method = "GET") { return handlePlan(new Request("https://site.test/plan", { method, headers: cookie ? { cookie } : {} }), {}, env.deps, "<p>THE PLAN</p>"); }
 
 test("settings: defaults, changes and bad values", () => {
   assert.deepEqual(cleanConfig({}).config, DEFAULTS);
@@ -50,7 +65,9 @@ test("hold mode: a comment waits for approval, then shows without private fields
   const pub = f.body.items[0];
   assert.equal(pub.name, "Pat Example"); assert.equal(pub.precinct, "27-488"); assert.equal(pub.ld, "27");
   assert.equal(pub.email, undefined); assert.equal(pub.ipHash, undefined);
-  assert.match(f.res.headers.get("netlify-cdn-cache-control"), /s-maxage=15/);
+  // Only people with the code get the list, so no shared CDN copy of it.
+  assert.equal(f.res.headers.get("cache-control"), "private, no-store");
+  assert.equal(f.res.headers.get("netlify-cdn-cache-control"), null);
   await admin(e, { action: "set-status", id: r.body.id, status: "hidden" });
   assert.equal((await feed(e)).body.items.length, 0);
 });
@@ -184,7 +201,7 @@ test("validation, honeypot, closed switch and request checks", async () => {
   assert.equal(r.status, 403);
   const wrongType = await handleSubmit(new Request("https://site.test/api/submit", { method: "POST", headers: { "content-type": "text/plain" }, body: "x" }), { ip: "1.1.1.1" }, e.deps);
   assert.equal(wrongType.status, 415);
-  const big = await handleSubmit(post("/api/submit", { kind: "comment", text: "x".repeat(70000) }), { ip: "1.1.1.1" }, e.deps);
+  const big = await handleSubmit(post("/api/submit", { kind: "comment", text: "x".repeat(70000) }, { cookie: e.cookie }), { ip: "1.1.1.1" }, e.deps);
   assert.equal(big.status, 413);
   const get = await handleSubmit(new Request("https://site.test/api/submit"), { ip: "1.1.1.1" }, e.deps);
   assert.equal(get.status, 405);
@@ -204,7 +221,7 @@ test("only comments are accepted, and taking a side is optional", async () => {
   r = await submit(e, comment({ position: "maybe" }));
   assert.equal(r.status, 400); assert.ok(r.body.fields.position);
   // Old saved settings that still mention proposals are ignored, not an error.
-  await e.stores.config.setJSON("settings", { ...DEFAULTS, proposalsOpen: false, maxProposalChars: 9000, moderation: "publish" });
+  await e.stores.config.setJSON("settings", { ...DEFAULTS, accessCode: CODE, proposalsOpen: false, maxProposalChars: 9000, moderation: "publish" });
   const f = await feed(e);
   assert.equal(f.status, 200);
   assert.deepEqual(Object.keys(f.body.config).sort(), ["maxCommentChars", "moderation", "open"]);
@@ -281,4 +298,134 @@ test("replies: the moderator answers a comment, edits the answer, and removes it
   // The signature setting is checked.
   assert.equal((await admin(e, { action: "set-config", config: { replyAs: "x" } })).status, 400);
   assert.equal(cleanConfig({}).config.replyAs, "the author");
+});
+
+test("access: the plan, its comments and posting all need the code", async () => {
+  const e = setup();
+  // No code set yet: the plan is closed to everyone.
+  let a = await access(e);
+  assert.deepEqual(a.body, { access: false, open: false });
+  assert.equal((await access(e, { action: "enter", code: "anything" })).status, 403);
+  let p = await plan(e);
+  assert.equal(p.status, 302); assert.equal(p.headers.get("location"), "/");
+  const bare = await handleFeed(new Request("https://site.test/api/feed"), {}, e.deps);
+  assert.equal(bare.status, 401);
+  const bareSubmit = await handleSubmit(post("/api/submit", comment()), { ip: "1.1.1.1" }, e.deps);
+  assert.equal(bareSubmit.status, 401);
+  assert.equal((await admin(e, { action: "list" })).body.items.length, 0);
+
+  await configure(e, { accessCode: CODE });
+  assert.equal((await access(e)).body.open, true);
+  // Capitals, spaces and punctuation don't matter.
+  const ok = await access(e, { action: "enter", code: " repair-2027 " });
+  assert.equal(ok.status, 200);
+  const set = ok.res.headers.get("set-cookie");
+  assert.match(set, /^bw_access=[A-Za-z0-9_-]{30,}; Path=\/; Max-Age=7776000; HttpOnly; SameSite=Lax; Secure$/);
+  assert.ok(!set.toLowerCase().includes("repair"), "the cookie never holds the code itself");
+  const cookie = set.split(";")[0];
+  assert.equal(cookie.split("=")[0], ACCESS_COOKIE);
+  assert.equal((await access(e, null, "4.4.4.4", { cookie })).body.access, true);
+  p = await plan(e, cookie);
+  assert.equal(p.status, 200); assert.equal(await p.text(), "<p>THE PLAN</p>");
+  assert.equal(p.headers.get("cache-control"), "private, no-store");
+  assert.equal(p.headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.match(p.headers.get("content-security-policy"), /frame-ancestors 'none'/);
+  const head = await plan(e, cookie, "HEAD");
+  assert.equal(head.status, 200); assert.equal(await head.text(), "");
+  assert.equal((await plan(e, cookie, "POST")).status, 405);
+  assert.equal((await plan(e, "bw_access=forged-value")).status, 302);
+  e.cookie = cookie;
+  assert.equal((await feed(e)).status, 200);
+  // Nothing public shows the code.
+  assert.ok(!JSON.stringify((await feed(e)).body).includes("Repair 2027"));
+  assert.ok(!JSON.stringify((await access(e, null, "4.4.4.4", { cookie })).body).includes("2027"));
+
+  // Changing the code signs everyone out.
+  await configure(e, { accessCode: "New code 99" });
+  assert.equal((await plan(e, cookie)).status, 302);
+  assert.equal((await feed(e)).status, 401);
+  const late = await handleSubmit(post("/api/submit", comment(), { cookie }), { ip: "1.1.1.1" }, e.deps);
+  assert.equal(late.status, 401); assert.match((await late.json()).message, /access code has changed/);
+  // A blank code closes the plan again.
+  await configure(e, { accessCode: "" });
+  assert.equal((await access(e, { action: "enter", code: "New code 99" })).status, 403);
+});
+
+test("access: wrong codes lock a connection out for an hour", async () => {
+  const e = setup();
+  await configure(e, { accessCode: CODE });
+  const wrong = await access(e, { action: "enter", code: "nope" }, "6.6.6.6");
+  assert.equal(wrong.status, 401); assert.ok(wrong.body.fields.code);
+  assert.equal((await access(e, { action: "enter", code: "" }, "6.6.6.6")).status, 400);
+  for (let i = 0; i < 9; i++) assert.equal((await access(e, { action: "enter", code: "nope" + i }, "6.6.6.6")).status, 401);
+  const lockedOut = await access(e, { action: "enter", code: CODE }, "6.6.6.6");
+  assert.equal(lockedOut.status, 429); // even with the right code
+  assert.ok(lockedOut.body.retryAfter > 0 && lockedOut.body.retryAfter <= 3600);
+  assert.equal((await access(e, { action: "enter", code: CODE }, "7.7.7.7")).status, 200); // other connections unaffected
+  e.t.now += 3601e3;
+  assert.equal((await access(e, { action: "enter", code: CODE }, "6.6.6.6")).status, 200);
+  const cl = await admin(e, { action: "cleanup" });
+  assert.equal(cl.status, 200);
+});
+
+test("access: the code setting, and a starting code from ACCESS_CODE", async () => {
+  assert.equal(DEFAULTS.accessCode, "");
+  assert.equal(cleanConfig({ accessCode: "  Two   words " }).config.accessCode, "Two words");
+  assert.equal(cleanConfig({ accessCode: "" }).config.accessCode, "");
+  assert.ok(cleanConfig({ accessCode: "a-b-c" }).errors.accessCode);           // only 3 letters and numbers
+  assert.ok(cleanConfig({ accessCode: "x".repeat(41) }).errors.accessCode);
+  assert.equal(normCode(" Repair-2027! "), "repair2027");
+  const e = setup();
+  e.deps.env = { ...e.deps.env, ACCESS_CODE: "Seeded code" };
+  assert.equal((await access(e, { action: "enter", code: "seeded code" })).status, 200);
+  // A code saved on the admin page wins over the starting one.
+  await configure(e, { accessCode: "Saved code" });
+  assert.equal((await access(e, { action: "enter", code: "seeded code" })).status, 401);
+  assert.equal((await access(e, { action: "enter", code: "SAVED CODE" })).status, 200);
+});
+
+test("access requests: checked, limited, and listed for the admin", async () => {
+  const e = setup();
+  const ask = (extra = {}, ip = "8.8.8.8") => access(e, { action: "request", name: "Jo Member", email: "jo@example.com", role: "pco", precinct: "25-222", note: "Please send the code.", ...extra }, ip);
+  // A request doesn't need the code.
+  let r = await ask({ email: "" });
+  assert.equal(r.status, 400); assert.ok(r.body.fields.email);
+  r = await ask({ name: "J" });
+  assert.equal(r.status, 400); assert.ok(r.body.fields.name);
+  r = await ask({ precinct: "!!" });
+  assert.equal(r.status, 400); assert.ok(r.body.fields.precinct);
+  r = await ask({ role: "boss" });
+  assert.equal(r.status, 400); assert.ok(r.body.fields.role);
+  r = await ask({ note: "x".repeat(501) });
+  assert.equal(r.status, 400); assert.ok(r.body.fields.note);
+  r = await ask({ website: "spam.example" });
+  assert.equal(r.status, 200);
+  assert.equal((await admin(e, { action: "list" })).body.access.length, 0); // the honeypot saves nothing
+  r = await ask({ role: "", precinct: "", note: "" });
+  assert.equal(r.status, 200);
+  e.t.now += 60e3; // a minute later, so the newest is listed first
+  r = await ask();
+  assert.equal(r.status, 200);
+  const full = (await admin(e, { action: "list" })).body;
+  assert.match(full.labels.T1, /^Repair 42 · Amendment 39: A fair trial/); // labels come only through the admin API
+  let list = full.access;
+  assert.equal(list.length, 2);
+  assert.equal(list[0].email, "jo@example.com"); assert.equal(list[0].status, "new");
+  assert.equal(list[0].note, "Please send the code."); assert.equal(list[0].precinct, "25-222");
+  // Marked done, back again, and deleted.
+  let s = await admin(e, { action: "access-status", id: list[0].id, status: "done" });
+  assert.equal(s.status, 200); assert.equal(s.body.request.status, "done");
+  assert.equal((await admin(e, { action: "access-status", id: list[0].id, status: "maybe" })).status, 400);
+  assert.equal((await admin(e, { action: "access-status", id: "nope-00000000", status: "done" })).status, 404);
+  assert.equal((await admin(e, { action: "access-delete", id: list[1].id })).status, 200);
+  list = (await admin(e, { action: "list" })).body.access;
+  assert.equal(list.length, 1); assert.equal(list[0].status, "done");
+  // Five requests a day from one connection; others aren't affected.
+  for (let i = 0; i < 3; i++) assert.equal((await ask()).status, 200);
+  const limited = await ask();
+  assert.equal(limited.status, 429); assert.equal(limited.body.scope, "ip");
+  assert.equal((await ask({}, "8.8.8.9")).status, 200);
+  // Requests never reach the public list of comments.
+  e.cookie = null;
+  assert.equal((await feed(e)).body.items.length, 0);
 });

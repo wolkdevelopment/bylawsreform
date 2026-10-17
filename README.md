@@ -2,9 +2,10 @@
 
 This is the Bylaws Workbench with these additions:
 
+- **An access code.** The front page doesn't show the plan. It says the plan is being worked on for submittal at the first business meeting of the Central Committee in the new term, and asks for the access code. Anyone without the code can send a request (name, email, and optionally role, precinct and a note), which waits on the admin page. The plan itself is served by a function only to people who have entered the code, and so are its comments. The code is set on the admin page, and changing it signs everyone out.
 - **Comments on every repair.** Each repair card has an **Add a comment** button and shows its comments. Only the comment and a name are required. Everything else is one tap or optional: a role (PCO, Precinct Captain, party member or guest), a view (Support, Support with changes, Oppose or Question), a precinct, and an email only the moderator sees.
-- **Details once.** People can tell the page who they are with **Join the discussion**, or with their first comment. The device remembers it, so every later comment is just the text. **Change** edits the details and **Not you?** clears them, for shared computers.
-- **Finding the discussion.** A band near the top shows the totals, the most discussed repair and the latest comment. A **Comments** button at the bottom of the screen opens a panel with four views: Latest, Most discussed, Questions (waiting and answered) and People. Tapping any name shows everything that person wrote, and **Go to this comment** jumps to it. Card and group headings show their comment counts. An open page checks for new comments once a minute.
+- **Details once.** People can tell the page who they are with **Join the discussion** in the Comments panel, or with their first comment. The device remembers it, so every later comment is just the text. **Change** edits the details and **Not you?** clears them, for shared computers.
+- **Finding the discussion.** A **Comments** button at the bottom of the screen opens a panel with four views: Latest, Most discussed, Questions (waiting and answered) and People. Tapping any name shows everything that person wrote, and **Go to this comment** jumps to it. Card and group headings show their comment counts. Comments load once when the page opens. Nothing checks again by itself; **Check for new comments** in the panel does it on request.
 - **Your replies.** On the admin page you can answer any comment and mark it Answered, Changed in the revision, Considered, kept as is, or Noted. The reply shows under the comment, signed with the name you choose.
 - **Revisions keep their comments.** Comments belong to a repair, not to its wording. When a repair is revised, its card says what changed and can show the earlier version, and comments written before the change are marked "On the earlier version."
 - **Comments show right away, with an automatic hold.** A comment that looks like spam or abuse waits for your approval instead (see "Moderation").
@@ -14,10 +15,12 @@ This is the Bylaws Workbench with these additions:
 
 | Path | What it is |
 | --- | --- |
-| `site/index.html` | The Workbench page. It's generated, so don't edit it by hand (see "Changing the page"). |
-| `site/admin/index.html` | The admin page: approve or hide posts, change limits, download everything. |
-| `netlify/functions/` | Three small functions: `submit` (new posts), `feed` (the public list), `admin`. |
-| `netlify/lib/core.mjs` | All the rules: validation, rate limits, moderation, privacy. |
+| `site/index.html` | The front page: enter the access code, or ask for it. |
+| `site/robots.txt` | Keeps search engines out. |
+| `site/admin/index.html` | The admin page: the access code and requests for it, approve or hide posts, change limits, download everything. |
+| `netlify/lib/page.mjs` | The Workbench page itself. It's generated, so don't edit it by hand (see "Changing the page"). |
+| `netlify/functions/` | Five small functions: `plan` (the page, for people with the code), `access` (the code and requests), `submit` (new comments), `feed` (the list of comments), `admin`. |
+| `netlify/lib/core.mjs` | All the rules: the access code, validation, rate limits, moderation, privacy. |
 | `dev/` | A local preview server with in-memory storage. |
 | `test/` | Automated tests (`npm test`). |
 
@@ -29,15 +32,17 @@ This is the Bylaws Workbench with these additions:
 2. **Set environment variables** in the project's settings:
    - `ADMIN_KEY` (required): a long random password, at least 12 characters. It opens the admin page. Keep it private, but leave **Contains secret values** unticked: Netlify never shows a secret value again, and secret values have been reported missing inside Functions.
    - `IP_SALT` (recommended): any long random string. It scrambles IP addresses before they're stored.
+   - `ACCESS_CODE` (optional): a starting access code. You can also set or change the code on the admin page, which wins over this.
    - Optional starting values, all changeable later on the admin page: `RL_IP_PER_HOUR`, `RL_IP_PER_DAY`, `RL_ALL_PER_HOUR`, `RL_ALL_PER_DAY`, `MODERATION` (`hold` or `publish`), `MAX_COMMENT_CHARS`.
 3. **Redeploy** so the functions pick up the variables. Then open `https://your-site.netlify.app/admin/` and sign in with `ADMIN_KEY`.
-4. **Post a test comment** on the public page and check that it appears. Then post one with a link in it and check that it waits on the admin page. Approve or delete it there. Try **Reply** on a comment and check the reply shows on the public page within a minute.
+4. **Set the access code** under **Access** on the admin page. Until there's a code, no one can open the plan.
+5. **Open the front page, enter the code, and post a test comment.** Check that it appears. Then post one with a link in it and check that it waits on the admin page. Approve or delete it there. Try **Reply** on a comment and check the reply shows when you reload the plan.
 
 Storage uses Netlify Blobs, which is built into Netlify. There's no database to create.
 
 ## Rate limits
 
-Every limit can be changed on the admin page under **Settings**. Changes take effect within a minute, with no redeploy.
+Every limit can be changed on the admin page under **Settings**. Changes take effect right away, with no redeploy.
 
 | Setting | Default | What it means |
 | --- | --- | --- |
@@ -62,8 +67,18 @@ Things to know:
 - **Wait for my approval**: nothing appears until you approve it on the admin page.
 - **Accept new comments: No** stops new comments and leaves existing ones up.
 - **Hide** takes a post off the public page and keeps it. **Delete** removes it for good.
-- The public list updates within about a minute of any change, because Netlify caches it for up to a minute.
+- Approvals, hides and replies show the next time someone opens the page, or taps **Check for new comments**.
 - Commenters can't edit or delete their own comments, because the site has no accounts to prove who wrote what. If someone wants a comment changed or removed, they can ask you, or post a follow-up.
+
+## The access code
+
+- The plan opens only with the code. People type it on the front page; capital letters, spaces and punctuation don't matter, so "Repair 2027" and "repair-2027" both work. The browser remembers it for 90 days.
+- A link to a part of the plan still works: someone without the code lands on the front page, and after the code, on that part.
+- **Changing the code** signs everyone out until they enter the new one. **Leaving it blank** closes the plan to everyone. Either way, comments and replies are kept.
+- **Requests for the code** wait under **Access** on the admin page. **Email the code** opens your email app with a message ready to send. Then mark the request done.
+- Guessing is slowed down: 10 wrong codes in an hour lock that connection out for an hour, and one connection can send 5 requests a day.
+- The browser keeps a scrambled token, never the code itself. The page, the comments, and posting all check it. Netlify's CDN never stores a copy of the plan or the comments.
+- Anyone with the code can pass it on. Change it if it gets around further than you want.
 
 ## Replies
 
@@ -80,7 +95,8 @@ Repairs 41 to 44 were revised on October 12, 2026, after members' comments. To r
 
 ## Privacy
 
-- Emails are never shown publicly. Only the admin page and the CSV download include them.
+- The plan, its comments and the comment form are only for people with the access code. The whole site carries "noindex" and `robots.txt` turns crawlers away.
+- Emails are never shown on the page. Only the admin page and the CSV download include them. Emails in requests for the code are only on the admin page.
 - Names and precincts appear unless the person unticks "Show my name and precinct with my comments." Then the page shows "Name withheld," the role they chose, if any, and the legislative district taken from the precinct number.
 - IP addresses are never stored. Each one is scrambled with `IP_SALT` into a code that can't be turned back into an address. The admin page uses that code to show how many posts came from the same connection.
 - Roles and precincts are whatever people choose and type. A precinct alone doesn't make a comment "PCO," since Precinct Captains have precincts too. To confirm someone is a PCO, check their name, precinct and email (if they gave one) against the PCO list.
@@ -99,15 +115,15 @@ Deploys happen only when you change the page itself. If credits ever run out, Ne
 You need Node.js 22.12 or newer.
 
 ```
-npm run dev        # http://localhost:8888 (admin key: local-admin-key)
-npm test           # 12 tests: limits, moderation, automatic hold, privacy, validation, admin lockout, version stamps, replies
+npm run dev        # http://localhost:8888 (access code: local code; admin key: local-admin-key)
+npm test           # 16 tests: limits, moderation, automatic hold, privacy, validation, admin lockout, version stamps, replies, the access code, requests
 ```
 
 The local server keeps posts in memory, so they vanish when you stop it. It doesn't need `npm install`.
 
 ## Changing the page
 
-`site/index.html` and `netlify/lib/ids.mjs` are generated from the Workbench source, the same source as the claude.ai version. Ask Claude to rebuild them, then redeploy. Don't edit the generated files by hand, or the next rebuild will overwrite your changes.
+`netlify/lib/page.mjs`, `site/index.html` and `netlify/lib/ids.mjs` are generated from the Workbench source, the same source as the claude.ai version. Ask Claude to rebuild them, then redeploy. Don't edit the generated files by hand, or the next rebuild will overwrite your changes.
 
 ## After you deploy
 
